@@ -45,7 +45,6 @@
         .v-icon { width: 45px; height: 45px; object-fit: contain; margin-bottom: 8px; }
         .v-label { font-size: 0.75em; font-weight: 700; margin-bottom: 5px; }
         .sub-select { font-size: 0.7em; margin-top: 5px; width: 95%; border-radius: 4px; border: 1px solid #bbb; padding: 3px; font-weight: 600; }
-        .sub-select { font-size: 0.55em; margin-top: 3px; width: 90%; border-radius: 3px; border: 1px solid #ccc; padding: 1px; }
         .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
         #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
     </style>
@@ -72,12 +71,11 @@
                     <span id="clock-time">00:00:00</span>
                     <span id="clock-date">Loading Date...</span>
                 </div>
-                
+
                 <div class="theme-container">
                     <button id="t-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
                     <button id="t-dark" class="theme-btn" onclick="setTheme('dark', this)">Dark</button>
                     <button id="t-auto" class="theme-btn active" onclick="setTheme('auto', this)">Auto</button>
-                </div>
                 </div>
 
                 <div class="profile-container">
@@ -194,77 +192,6 @@
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
-    <style>
-    /* ... existing styles ... */
-    
-    /* Theme Button Active States */
-    .theme-btn { 
-        background: #eee; 
-        color: #333; 
-        transition: 0.3s;
-    }
-    .theme-btn.active { 
-        background: #3498db !important; 
-        color: white !important; 
-        box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
-    }
-    
-    /* Dark Mode Overrides */
-    body.dark-theme .theme-btn { background: #333; color: #ccc; }
-    body.dark-theme .theme-btn.active { background: #3498db !important; color: white !important; }
-</style>
-
-<script>
-    // Initialize both tile layers
-    var lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    });
-
-    var darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-    });
-
-    // Default to Light Tiles
-    var map = L.map('map', { 
-        zoomControl: false, 
-        layers: [lightTiles] 
-    }).setView(sjdm, 13);
-
-    function setTheme(mode, element) {
-        // 1. Update Button UI
-        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-        if (element) {
-            element.classList.add('active');
-        } else {
-            // Fallback for initialization
-            document.getElementById('t-' + mode).classList.add('active');
-        }
-
-        // 2. Update Body Class and Map Tiles
-        if (mode === 'dark') {
-            document.body.classList.add('dark-theme');
-            map.removeLayer(lightTiles);
-            darkTiles.addTo(map);
-        } else if (mode === 'light') {
-            document.body.classList.remove('dark-theme');
-            map.removeLayer(darkTiles);
-            lightTiles.addTo(map);
-        } else if (mode === 'auto') {
-            // Simple Auto logic based on time (6PM to 6AM = Dark)
-            const hour = new Date().getHours();
-            if (hour >= 18 || hour < 6) setTheme('dark');
-            else setTheme('light');
-            // Re-add active class to auto button after the recursion
-            document.getElementById('t-auto').classList.add('active');
-        }
-    }
-
-    // Update your HTML buttons to pass 'this'
-    // Example: <button id="t-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
-</script>
-
     <script>
         var sjdm = [14.8114, 121.0450];
         var originMarker, destMarker, routingControl, walkingRouteControl;
@@ -274,10 +201,27 @@
         var clickCount = 0;
         var currentRain = false;
 
+        // Theme-specific map layers
+        const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        });
+
+        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd'
+        });
+
         const sjdmZones = [
             { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
             { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "High congestion at Muzon intersection. Expect slow movement." },
-            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student activity zone detected. Drive carefully near the campus." }
+            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student activity zone detected. Drive carefully." },
+            { name: "Grotto of Our Lady of Lourdes", coords: [14.7935, 121.0425], radius: 0.5, msg: "Pilgrimage site. Expect heavy traffic during weekends and Lenten season." },
+            { name: "St. Joseph the Worker Parish", coords: [14.8172, 121.0525], radius: 0.3, msg: "Poblacion area. Busy during mass schedules." },
+            { name: "San Isidro Labrador Parish (Muzon)", coords: [14.8122, 121.0038], radius: 0.3, msg: "Highly active church zone in the heart of Muzon." },
+            { name: "Starmall SJDM", coords: [14.7958, 121.0494], radius: 0.4, msg: "Commercial hub near Quirino Highway. Watch for transport terminals." },
+            { name: "Victory Town Center (Sapang Palay)", coords: [14.8515, 121.0392], radius: 0.4, msg: "Core commercial zone for Sapang Palay commuters." },
+            { name: "SJDM New City Hall", coords: [14.8236, 121.0475], radius: 0.3, msg: "Government center. Moderate pedestrian activity." },
+            { name: "Bulacan State University - Sarmiento", coords: [14.8150, 121.0560], radius: 0.3, msg: "High student density. Peak hours: 7 AM and 5 PM." }
         ];
 
         const funFacts = [
@@ -287,8 +231,8 @@
             "The city is home to several major resettlement projects in the Philippines."
         ];
 
-        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-        var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
+        // Initialize Map with default light tiles
+        var map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
         var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 
         fetch('Tricycle_Toda.geojson') 
@@ -352,7 +296,6 @@
             let total = 0;
             const isDiscounted = (userProfile !== 'regular');
             
-            // Check for missing data
             if (currentVehicle === 'jeep' || currentVehicle === 'bus' || currentVehicle === 'uv') {
                 document.getElementById('fare-display').innerText = "Data Mapping...";
                 document.getElementById('fare-display').style.color = "#7f8c8d";
@@ -414,7 +357,6 @@
             }).addTo(map);
         }
 
-        // Helper functions from original code
         function getDistance(lat1, lon1, lat2, lon2) {
             var R = 6371;
             var dLat = (lat2-lat1)*Math.PI/180;
@@ -502,9 +444,34 @@
             updateMONTE(); 
         }
 
-        function setTheme(m) { 
-            if(m === 'dark') document.body.classList.add('dark-theme');
-            else document.body.classList.remove('dark-theme');
+        // --- ENHANCED THEME LOGIC ---
+        function setTheme(mode, element) {
+            // Update UI Button Classes
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            if (element) {
+                element.classList.add('active');
+            } else {
+                document.getElementById('t-' + mode).classList.add('active');
+            }
+
+            const hour = new Date().getHours();
+            let targetTheme = mode;
+
+            // Handle Auto Logic (Dark from 6PM to 6AM)
+            if (mode === 'auto') {
+                targetTheme = (hour >= 18 || hour < 6) ? 'dark' : 'light';
+            }
+
+            // Apply CSS and Map Tile Changes
+            if (targetTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                if (map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
+                darkTiles.addTo(map);
+            } else {
+                document.body.classList.remove('dark-theme');
+                if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
+                lightTiles.addTo(map);
+            }
         }
 
         function goHome() { map.flyTo(sjdm, 13); }
@@ -518,10 +485,19 @@
             const now = new Date();
             document.getElementById('clock-time').innerText = now.toLocaleTimeString();
             document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+            
+            // Re-check theme if in Auto mode
+            const activeBtn = document.querySelector('.theme-btn.active');
+            if (activeBtn && activeBtn.id === 't-auto') {
+                setTheme('auto');
+            }
+            
             updateTrafficStatus();
         }
+        
         setInterval(updateClock, 1000);
         fetchWeather();
+        setTheme('auto'); // Set initial theme
     </script>
 </body>
 </html>
