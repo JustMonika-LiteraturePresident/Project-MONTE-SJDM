@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 
     <style>
-        :root { --bg-sidebar: #ffffff; --text-main: #333; --card-bg: #fff; --border-ui: #ddd; }
+        :root { --bg-sidebar: #ffffff; --text-main: #333333; --card-bg: #ffffff; --border-ui: #ddd; }
         body.dark-theme { --bg-sidebar: #1a1a1a; --text-main: #e0e0e0; --card-bg: #2d2d2d; --border-ui: #444; }
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; transition: background 0.3s; }
         html, body, #map { height: 100%; width: 100vw; overflow: hidden; }
@@ -35,7 +35,6 @@
         .sub-select { font-size: 0.55em; margin-top: 3px; width: 90%; border-radius: 3px; border: 1px solid #ccc; padding: 1px; }
         .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
         #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
-        #prox-box { font-size: 0.8em; color: #e67e22; margin-top: 5px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -95,14 +94,19 @@
                     <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
                         <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
                         <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
-                            <option value="regular">Regular</option>
+                            <option value="regular">Regular (Shared)</option>
                             <option value="special-1">Special (1p)</option>
                             <option value="special-2">Special (2p)</option>
+                            <option value="special-3">Special (3p)</option>
                         </select>
                     </div>
                     <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
                         <img src="UV.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=UV'">
-                        <span>UV</span>
+                        <span>UV Exp</span>
+                    </div>
+                    <div class="v-type" id="btn-lrt" onclick="setSubVehicle('lrt', this)">
+                        <i class="fa fa-train-subway" style="font-size: 1.4em; margin-bottom:5px;"></i>
+                        <span>LRT-7</span>
                     </div>
                 </div>
 
@@ -113,10 +117,7 @@
 
                 <div class="result-card" id="main-result-card" style="border-top: 4px solid #27ae60;">
                     <div id="public-fare-box">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong>Est. Fare</strong>
-                            <div id="prox-box">Near: 0.0km</div>
-                        </div>
+                        <strong>Est. Fare</strong>
                         <div style="font-size: 1.5em; font-weight: bold; color: #27ae60;" id="fare-display">₱ 0.00</div>
                     </div>
                     <div id="private-dist-box" style="display:none;">
@@ -134,6 +135,7 @@
                     <button onclick="resetMarkers()" style="width: 100%; padding: 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
                         <i class="fa fa-trash"></i> Reset All Markers
                     </button>
+                    <p style="font-size: 0.8em; color: #888; margin-top: 10px; text-align: center;">This will clear your current origin and destination points.</p>
                 </div>
             </div>
 
@@ -165,19 +167,21 @@
         var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
         var terminalData = { features: [] };
         var todaLayer = L.layerGroup(); 
-        var clickCount = 0;
+        var clickCount = 0; // TRACKS MAP CLICKS
 
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
         var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
         var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 
-        fetch('Tricycle_Toda.geojson').then(res => res.json()).then(data => {
-            terminalData = data;
-            L.geoJSON(data, {
-                pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, fillColor: "#e67e22", color: "#fff", weight: 2, fillOpacity: 0.9 }),
-                onEachFeature: (f, l) => l.bindPopup("<b>" + (f.properties.Name || "Terminal") + "</b>")
-            }).addTo(todaLayer);
-        });
+        fetch('Tricycle_Toda.geojson') 
+            .then(res => res.json())
+            .then(data => {
+                terminalData = data;
+                L.geoJSON(data, {
+                    pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, fillColor: "#e67e22", color: "#fff", weight: 2, fillOpacity: 0.9 }),
+                    onEachFeature: (f, l) => l.bindPopup("<b>" + (f.properties.Name || "Terminal") + "</b>")
+                }).addTo(todaLayer);
+            });
 
         function getDistance(lat1, lon1, lat2, lon2) {
             var R = 6371;
@@ -188,7 +192,7 @@
         }
 
         function resetMarkers() {
-            clickCount = 0; 
+            clickCount = 0; // RESET COUNTER
             if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
             if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
             if (routingControl) { map.removeControl(routingControl); routingControl = null; }
@@ -197,21 +201,51 @@
             document.getElementById('fare-display').innerText = "₱ 0.00";
             document.getElementById('dist-display').innerText = "0.00 km";
             document.getElementById('time-display').innerText = "--:--";
-            document.getElementById('prox-box').style.display = 'none';
             document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
+            document.getElementById('traffic-desc').innerText = "Waiting for input...";
             document.querySelectorAll('.leaflet-control-geocoder-form input').forEach(el => el.value = "");
         }
 
         function updateTrafficStatus() {
             const hour = new Date().getHours();
-            let status = { label: "Light", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
-            if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) status = { label: "Heavy Rush Hour", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
-            else if (hour >= 10 && hour <= 15) status = { label: "Moderate", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
+            let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
+
+            if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
+                status = { label: "Heavy Rush Hour", desc: "Expect significant delays", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
+            } else if (hour >= 10 && hour <= 15) {
+                status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
+            }
+
             const card = document.getElementById('traffic-card');
             card.style.borderLeft = "5px solid " + status.color;
             document.getElementById('traffic-icon').className = "fa " + status.icon;
             document.getElementById('traffic-status').innerText = status.label;
+            document.getElementById('traffic-desc').innerText = status.desc;
+            
             return status.multiplier;
+        }
+
+        function calculatePublicFare(dist) {
+            let total = 0;
+            const isDiscounted = (userProfile !== 'regular');
+
+            if (currentVehicle === 'jeep') {
+                total = (dist <= 4) ? 13 : 13 + (Math.ceil(dist - 4) * 1.50);
+            } else if (currentVehicle === 'bus') {
+                total = (dist <= 5) ? 15 : 15 + (Math.ceil(dist - 5) * 2.65);
+            } else if (currentVehicle === 'trike') {
+                let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
+                const triMode = document.getElementById('trike-mode').value;
+                if (triMode === 'regular') {
+                    total = baseFare;
+                } else {
+                    const multipliers = { "special-1": 4, "special-2": 2, "special-3": 1.5 };
+                    total = baseFare * (multipliers[triMode] || 1);
+                }
+            }
+            
+            if (isDiscounted) total *= 0.8;
+            document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
         }
 
         function updateMONTE() {
@@ -220,27 +254,18 @@
             
             let start = originMarker.getLatLng(); 
 
-            // Proximity logic for public vehicles
-            if (currentMode === 'public') {
+            if (currentMode === 'public' && currentVehicle === 'trike') {
                 const res = findNearestToda(start);
-                if (res.terminal) {
-                    const d = res.distance.toFixed(2);
-                    document.getElementById('prox-box').style.display = 'block';
-                    document.getElementById('prox-box').innerText = `Near: ${d}km to stop`;
-                    if (currentVehicle === 'trike') start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
-                }
-            } else {
-                document.getElementById('prox-box').style.display = 'none';
+                if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
             }
 
-            // FORCED Profile logic
-            let profileType = 'car';
-            let pathColor = '#3498db';
+            // DIFFERENTIAL ROUTING LOGIC
+            let routeProfile = 'car';
+            let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
+
             if (currentVehicle === 'moto') {
-                profileType = 'bicycle'; // Access narrow roads
-                pathColor = '#e67e22';
-            } else if (currentMode === 'public') {
-                pathColor = '#27ae60';
+                routeProfile = 'bicycle'; // Uses bicycle profile for narrow paths
+                pathColor = '#e67e22';    // Distinct Orange for Moto
             }
 
             const trafficMult = updateTrafficStatus();
@@ -249,7 +274,7 @@
                 waypoints: [start, destMarker.getLatLng()],
                 router: L.Routing.osrmv1({ 
                     serviceUrl: 'https://router.project-osrm.org/route/v1',
-                    profile: profileType // MANDATORY OVERRIDE
+                    profile: routeProfile 
                 }),
                 createMarker: () => null,
                 lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] }
@@ -265,23 +290,12 @@
                     document.getElementById('public-fare-box').style.display = 'none';
                     document.getElementById('private-dist-box').style.display = 'block';
                     document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-                    let arrival = new Date(); arrival.setMinutes(arrival.getMinutes() + t);
+                    
+                    let arrival = new Date();
+                    arrival.setMinutes(arrival.getMinutes() + t);
                     document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
             }).addTo(map);
-        }
-
-        function calculatePublicFare(dist) {
-            let total = 0;
-            const disc = (userProfile !== 'regular') ? 0.8 : 1;
-            if (currentVehicle === 'jeep') total = (dist <= 4) ? 13 : 13 + (Math.ceil(dist - 4) * 1.50);
-            else if (currentVehicle === 'bus') total = (dist <= 5) ? 15 : 15 + (Math.ceil(dist - 5) * 2.65);
-            else if (currentVehicle === 'trike') {
-                let base = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
-                const mode = document.getElementById('trike-mode').value;
-                total = (mode === 'regular') ? base : base * (mode === 'special-1' ? 4 : 2);
-            }
-            document.getElementById('fare-display').innerText = "₱ " + (total * disc).toFixed(2);
         }
 
         function findNearestToda(ll) {
@@ -293,24 +307,43 @@
             return { terminal: nearest, distance: minD };
         }
 
+        function checkNearestTodaUI(ll) {
+            if (currentVehicle !== 'trike' || currentMode !== 'public') return;
+            const res = findNearestToda(ll);
+            if (walkingRouteControl) map.removeControl(walkingRouteControl);
+            if (res.terminal) {
+                walkingRouteControl = L.Routing.control({
+                    waypoints: [ll, L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0])],
+                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'foot' }),
+                    createMarker: () => null,
+                    lineOptions: { styles: [{ color: '#3498db', weight: 4, dashArray: '5, 10' }] }
+                }).addTo(map);
+            }
+        }
+
         function setupMarker(ll, isOrigin) {
-            let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', () => updateMONTE());
-            if (isOrigin) { if(originMarker) map.removeLayer(originMarker); originMarker = m; }
+            let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', e => {
+                if (isOrigin) checkNearestTodaUI(e.target.getLatLng());
+                updateMONTE();
+            });
+            if (isOrigin) { if(originMarker) map.removeLayer(originMarker); originMarker = m; checkNearestTodaUI(ll); }
             else { if(destMarker) map.removeLayer(destMarker); destMarker = m; }
             updateMONTE();
         }
 
+        // THREE-CLICK LOGIC
         map.on('click', e => {
             clickCount++;
             if (clickCount === 1) setupMarker(e.latlng, true);
             else if (clickCount === 2) setupMarker(e.latlng, false);
-            else resetMarkers(); // FIXED: Logic now triggers correctly on 3rd click
+            else resetMarkers();
         });
 
         function switchMainMode(m) {
             currentMode = m;
             document.getElementById('public-selector').style.display = m==='public'?'grid':'none';
             document.getElementById('private-selector').style.display = m==='private'?'grid':'none';
+            if(m === 'private' && walkingRouteControl) map.removeControl(walkingRouteControl);
             updateMONTE();
         }
 
@@ -318,6 +351,8 @@
             currentVehicle = t;
             document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
             el.classList.add('active');
+            if (t === 'trike' && currentMode === 'public') { todaLayer.addTo(map); if(originMarker) checkNearestTodaUI(originMarker.getLatLng()); }
+            else { map.removeLayer(todaLayer); if(walkingRouteControl) map.removeControl(walkingRouteControl); }
             updateMONTE();
         }
 
@@ -328,18 +363,24 @@
             updateMONTE(); 
         }
 
-        function setTheme(m) { (m === 'dark') ? document.body.classList.add('dark-theme') : document.body.classList.remove('dark-theme'); }
+        function setTheme(m) { 
+            if(m === 'dark') document.body.classList.add('dark-theme');
+            else document.body.classList.remove('dark-theme');
+        }
+
         function goHome() { map.flyTo(sjdm, 13); }
 
         var gO = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
         document.getElementById('origin-box').appendChild(gO.getContainer());
         var gD = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
         document.getElementById('dest-box').appendChild(gD.getContainer());
-        setInterval(() => {
+
+        function updateClock() {
             const now = new Date();
             document.getElementById('clock-time').innerText = now.toLocaleTimeString();
             document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
-        }, 1000);
+        }
+        setInterval(updateClock, 1000);
     </script>
 </body>
 </html>
