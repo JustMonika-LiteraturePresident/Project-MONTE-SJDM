@@ -42,9 +42,9 @@
         .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
         .mode-btn.active { background: #2c3e50; color: white; }
         .vehicle-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
-        .v-type { padding: 6px 2px; border: 1px solid var(--border-ui); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; color: var(--text-main); transition: 0.2s; }
-        .v-type.active { border: 2px solid #3498db !important; background: #ebf5fb !important; color: #333; }
-        .v-icon { width: 30px; height: 30px; object-fit: contain; margin-bottom: 5px; }
+        .v-icon { width: 45px; height: 45px; object-fit: contain; margin-bottom: 8px; }
+        .v-label { font-size: 0.75em; font-weight: 700; margin-bottom: 5px; }
+        .sub-select { font-size: 0.7em; margin-top: 5px; width: 95%; border-radius: 4px; border: 1px solid #bbb; padding: 3px; font-weight: 600; }
         .sub-select { font-size: 0.55em; margin-top: 3px; width: 90%; border-radius: 3px; border: 1px solid #ccc; padding: 1px; }
         .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
         #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
@@ -284,6 +284,11 @@
             if (currentVehicle === 'jeep' || currentVehicle === 'bus' || currentVehicle === 'uv') {
                 document.getElementById('fare-display').innerText = "Data Mapping...";
                 document.getElementById('fare-display').style.color = "#7f8c8d";
+                return;
+            }
+             if (currentVehicle === 'lrt') {
+                document.getElementById('fare-display').innerText = "Coming soon in your areas!";
+                document.getElementById('fare-display').style.color = "#FFD700";
                 return;
             }
 
