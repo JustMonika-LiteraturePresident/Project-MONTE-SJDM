@@ -112,21 +112,21 @@
 
                 <div id="public-selector" class="vehicle-selector">
                     <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
-                        <img src="dist/images/puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
+                        <img src="puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
                         <select id="jeep-type" class="sub-select" onchange="updateMONTE()">
                             <option value="traditional">Traditional Jeep</option>
                             <option value="modern">Modern Jeep</option>
                         </select>
                     </div>
                     <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
-                        <img src="dist/images/bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
+                        <img src="bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
                         <select id="bus-type" class="sub-select" onchange="updateMONTE()">
                             <option value="regular">Regular Bus</option>
                             <option value="p2p">P2P Bus</option>
                         </select>
                     </div>
                     <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
-                        <img src="dist/images/tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
+                        <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
                         <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
                             <option value="regular">Trike Regular</option>
                             <option value="special-1">Trike Special P1</option>
@@ -135,7 +135,7 @@
                         </select>
                     </div>
                     <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
-                        <i class="fa fa-van-shuttle" style="font-size: 1.4em; margin-bottom:5px;"></i>
+                        <img src="UV.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=UV'">
                         <span>UV Exp</span>
                     </div>
                     <div class="v-type" id="btn-lrt" onclick="setSubVehicle('lrt', this)" style="opacity: 0.8; border-style: dashed;">
@@ -228,7 +228,7 @@
         var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 
         // Fetch GeoJSON and load into LayerGroup
-        fetch('dist/data/Tricycle_Toda.geojson') 
+        fetch('Tricycle_Toda.geojson') 
             .then(response => response.json())
             .then(data => {
                 terminalData = data;
