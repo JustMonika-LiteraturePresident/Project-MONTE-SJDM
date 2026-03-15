@@ -410,28 +410,41 @@
         }
 
         function updateMONTE() {
-            if (!originMarker || !destMarker) return;
-            if (routingControl) map.removeControl(routingControl);
-            
-            let serviceUrl = (currentMode === 'private' && currentVehicle === 'moto') ? 'https://routing.openstreetmap.de/routed-bike/route/v1' : 'https://routing.openstreetmap.de/routed-car/route/v1';
-            
-            routingControl = L.Routing.control({
-                waypoints: [originMarker.getLatLng(), destMarker.getLatLng()],
-                router: L.Routing.osrmv1({ serviceUrl: serviceUrl }),
-                createMarker: () => null,
-                lineOptions: { styles: [{ color: currentMode === 'public' ? '#27ae60' : '#3498db', weight: 6 }] }
-            }).on('routesfound', (e) => {
-                let d = e.routes[0].summary.totalDistance / 1000;
-                let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMultiplier * weatherMultiplier);
-                
-                if (currentMode === 'public') calculatePublicFare(d);
-                else {
-                    document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-                    document.getElementById('time-display').innerText = t + " mins";
-                }
-            }).addTo(map);
-        }
+    if (!originMarker || !destMarker) return;
+    if (routingControl) map.removeControl(routingControl);
+    
+    let startPoint = originMarker.getLatLng(); // Default start
 
+    // JOURNEY LOGIC: If Trike is selected, the vehicle journey starts AT the terminal
+    if (currentVehicle === 'trike' && terminalData.features.length > 0) {
+        const result = findNearestToda(originMarker.getLatLng());
+        if (result && result.terminal) {
+            const coords = result.terminal.geometry.coordinates;
+            // Set the vehicle routing start point to the Terminal's location
+            startPoint = L.latLng(coords[1], coords[0]); 
+        }
+    }
+
+    let serviceUrl = (currentMode === 'private' && currentVehicle === 'moto') 
+        ? 'https://routing.openstreetmap.de/routed-bike/route/v1' 
+        : 'https://routing.openstreetmap.de/routed-car/route/v1';
+    
+    routingControl = L.Routing.control({
+        waypoints: [startPoint, destMarker.getLatLng()], // Uses terminal if it's a trike trip
+        router: L.Routing.osrmv1({ serviceUrl: serviceUrl }),
+        createMarker: () => null,
+        lineOptions: { styles: [{ color: currentMode === 'public' ? '#27ae60' : '#3498db', weight: 6 }] }
+    }).on('routesfound', (e) => {
+        let d = e.routes[0].summary.totalDistance / 1000;
+        let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMultiplier * weatherMultiplier);
+        
+        if (currentMode === 'public') calculatePublicFare(d);
+        else {
+            document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+            document.getElementById('time-display').innerText = t + " mins";
+        }
+    }).addTo(map);
+}
         function updateAddressBox(latlng, boxId) {
             L.Control.Geocoder.nominatim().reverse(latlng, map.options.crs.scale(map.getZoom()), (results) => {
                 if (results && results[0]) {
