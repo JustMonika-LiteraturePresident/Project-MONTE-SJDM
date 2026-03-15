@@ -167,6 +167,7 @@
         var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
         var terminalData = { features: [] };
         var todaLayer = L.layerGroup(); 
+        var clickCount = 0; // TRACKS MAP CLICKS
 
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
         var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
@@ -191,6 +192,7 @@
         }
 
         function resetMarkers() {
+            clickCount = 0; // RESET COUNTER
             if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
             if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
             if (routingControl) { map.removeControl(routingControl); routingControl = null; }
@@ -201,8 +203,6 @@
             document.getElementById('time-display').innerText = "--:--";
             document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
             document.getElementById('traffic-desc').innerText = "Waiting for input...";
-            
-            // Clear input boxes in sidebar
             document.querySelectorAll('.leaflet-control-geocoder-form input').forEach(el => el.value = "");
         }
 
@@ -210,7 +210,6 @@
             const hour = new Date().getHours();
             let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
 
-            // Rush Hour: 6AM-9AM and 4PM-7PM
             if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
                 status = { label: "Heavy Rush Hour", desc: "Expect significant delays", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
             } else if (hour >= 10 && hour <= 15) {
@@ -235,7 +234,6 @@
             } else if (currentVehicle === 'bus') {
                 total = (dist <= 5) ? 15 : 15 + (Math.ceil(dist - 5) * 2.65);
             } else if (currentVehicle === 'trike') {
-                // Base ₱12 for first 2km, then ₱5 per km
                 let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
                 const triMode = document.getElementById('trike-mode').value;
                 if (triMode === 'regular') {
@@ -261,13 +259,25 @@
                 if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
             }
 
+            // DIFFERENTIAL ROUTING LOGIC
+            let routeProfile = 'car';
+            let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
+
+            if (currentVehicle === 'moto') {
+                routeProfile = 'bicycle'; // Uses bicycle profile for narrow paths
+                pathColor = '#e67e22';    // Distinct Orange for Moto
+            }
+
             const trafficMult = updateTrafficStatus();
 
             routingControl = L.Routing.control({
                 waypoints: [start, destMarker.getLatLng()],
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                router: L.Routing.osrmv1({ 
+                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                    profile: routeProfile 
+                }),
                 createMarker: () => null,
-                lineOptions: { styles: [{ color: currentMode === 'public' ? '#27ae60' : '#3498db', weight: 6, opacity: 0.8 }] }
+                lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] }
             }).on('routesfound', e => {
                 let d = e.routes[0].summary.totalDistance / 1000;
                 let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
@@ -288,7 +298,6 @@
             }).addTo(map);
         }
 
-        // Helper functions for terminal logic
         function findNearestToda(ll) {
             let nearest = null, minD = Infinity;
             terminalData.features.forEach(f => {
@@ -322,9 +331,12 @@
             updateMONTE();
         }
 
+        // THREE-CLICK LOGIC
         map.on('click', e => {
-            if (!originMarker) setupMarker(e.latlng, true);
-            else if (!destMarker) setupMarker(e.latlng, false);
+            clickCount++;
+            if (clickCount === 1) setupMarker(e.latlng, true);
+            else if (clickCount === 2) setupMarker(e.latlng, false);
+            else resetMarkers();
         });
 
         function switchMainMode(m) {
