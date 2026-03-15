@@ -18,10 +18,10 @@
         html, body, #map { height: 100%; width: 100vw; overflow: hidden; }
         #home-btn { position: absolute; top: 15px; left: 60px; z-index: 1100; padding: 10px 15px; background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; cursor: pointer; font-weight: bold; }
         .leaflet-sidebar-content { background: var(--bg-sidebar); color: var(--text-main); overflow-y: auto !important; height: 100%; }
+        
+        /* Analyst UI Components */
         #clock-container { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; }
         #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
-        
-        /* Bot Styling */
         #bot-panel { background: rgba(52, 152, 219, 0.1); border-left: 5px solid #3498db; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85em; color: var(--text-main); line-height: 1.4; }
         body.dark-theme #bot-panel { background: rgba(52, 152, 219, 0.2); }
         .bot-header { font-weight: bold; color: #2980b9; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
@@ -31,14 +31,17 @@
         .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .theme-btn.active { background: #3498db; color: white; }
         .prof-btn.active { background: #27ae60; color: white; }
+        
         .mode-container { display: flex; gap: 8px; margin: 15px 0; background: #f0f0f0; padding: 6px; border-radius: 12px; }
-        .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
+        .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .mode-btn.active { background: #2c3e50; color: white; }
+        
         .vehicle-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
-        .v-type { padding: 6px 2px; border: 1px solid var(--border-ui); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; color: var(--text-main); transition: 0.2s; }
-        .v-type.active { border: 2px solid #3498db !important; background: #ebf5fb !important; color: #333; }
+        .v-type { padding: 6px 2px; border: 1px solid var(--border-ui); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; color: var(--text-main); font-size: 0.7em; }
+        .v-type.active { border: 2px solid #3498db; background: #ebf5fb; color: #333; }
         .v-icon { width: 30px; height: 30px; object-fit: contain; margin-bottom: 5px; }
-        .sub-select { font-size: 0.55em; margin-top: 3px; width: 90%; border-radius: 3px; border: 1px solid #ccc; padding: 1px; }
+        .sub-select { font-size: 0.55em; width: 95%; margin-top: 3px; }
+        
         .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
         #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
     </style>
@@ -50,116 +53,110 @@
     <div id="sidebar" class="leaflet-sidebar collapsed">
         <div class="leaflet-sidebar-tabs">
             <ul role="tablist">
-                <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+                <li><a href="#home" role="tab"><i class="fa fa-home"></i></a></li>
                 <li><a href="#planner" role="tab"><i class="fa fa-route"></i></a></li>
-                <li><a href="#settings" role="tab"><i class="fa fa-rotate"></i></a></li>
+                <li><a href="#analyst" role="tab"><i class="fa fa-robot"></i></a></li>
+                <li><a href="#settings" role="tab"><i class="fa fa-cog"></i></a></li>
             </ul>
         </div>
 
         <div class="leaflet-sidebar-content">
             <div class="leaflet-sidebar-pane" id="home">
                 <h1 class="leaflet-sidebar-header">MONTE Nav<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
-                
-                <div id="clock-container">
-                    <span id="clock-time">00:00:00</span>
-                    <span id="clock-date">Loading Date...</span>
-                </div>
-
-                <div id="bot-panel">
-                    <div class="bot-header"><i class="fa fa-robot"></i> MONTE Intelligence</div>
-                    <div id="bot-message">Monitoring city transit...</div>
-                </div>
-
-                <div class="theme-container">
-                    <button id="t-light" class="theme-btn" onclick="setTheme('light')">Light</button>
-                    <button id="t-dark" class="theme-btn" onclick="setTheme('dark')">Dark</button>
-                    <button id="t-auto" class="theme-btn active" onclick="setTheme('auto')">Auto</button>
-                </div>
-
-                <div class="profile-container">
-                    <button class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
-                    <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
-                    <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
-                </div>
-
-                <div class="mode-container">
-                    <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')"><span>Public</span></button>
-                    <button id="mode-private" class="mode-btn" onclick="switchMainMode('private')"><span>Private</span></button>
-                </div>
-
-                <div id="public-selector" class="vehicle-selector">
-                    <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
-                        <img src="puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
-                        <select id="jeep-type" class="sub-select" onchange="updateMONTE()">
-                            <option value="traditional">Trad. Jeep</option>
-                            <option value="modern">Modern Jeep</option>
-                        </select>
+                <div style="padding:15px;">
+                    <div class="profile-container">
+                        <button class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
+                        <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
+                        <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
                     </div>
-                    <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
-                        <img src="bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
-                        <select id="bus-type" class="sub-select" onchange="updateMONTE()">
-                            <option value="regular">Regular</option>
-                            <option value="p2p">P2P Bus</option>
-                        </select>
+                    <div class="mode-container">
+                        <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')">Public</button>
+                        <button id="mode-private" class="mode-btn" onclick="switchMainMode('private')">Private</button>
                     </div>
-                    <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
-                        <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
-                        <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
-                            <option value="regular">Regular (Shared)</option>
-                            <option value="special-1">Special (1p)</option>
-                            <option value="special-2">Special (2p)</option>
-                            <option value="special-3">Special (3p)</option>
-                        </select>
+                    <div id="public-selector" class="vehicle-selector">
+                        <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
+                            <img src="puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=JP'">
+                            <select id="jeep-type" class="sub-select" onchange="updateMONTE()"><option value="traditional">Trad.</option><option value="modern">Modern</option></select>
+                        </div>
+                        <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
+                            <img src="bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=BS'"><select id="bus-type" class="sub-select" onchange="updateMONTE()"><option value="regular">Reg.</option><option value="p2p">P2P</option></select>
+                        </div>
+                        <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
+                            <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=TK'"><select id="trike-mode" class="sub-select" onchange="updateMONTE()"><option value="regular">Shared</option><option value="special-1">Special</option></select>
+                        </div>
+                        <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)"><span>UV Exp</span></div>
+                        <div class="v-type" id="btn-lrt" onclick="setSubVehicle('lrt', this)"><i class="fa fa-train"></i><span>LRT-7</span></div>
                     </div>
-                    <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
-                        <img src="UV.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=UV'">
-                        <span>UV Exp</span>
+                    <div id="private-selector" class="vehicle-selector" style="display:none;">
+                        <div class="v-type active" id="btn-moto" onclick="setSubVehicle('moto', this)"><i class="fa fa-motorcycle"></i><span>Moto</span></div>
+                        <div class="v-type" id="btn-car" onclick="setSubVehicle('car', this)"><i class="fa fa-car"></i><span>Car</span></div>
                     </div>
-                    <div class="v-type" id="btn-lrt" onclick="setSubVehicle('lrt', this)">
-                        <i class="fa fa-train-subway" style="font-size: 1.4em; margin-bottom:5px;"></i>
-                        <span>LRT-7</span>
-                    </div>
-                </div>
-
-                <div id="private-selector" class="vehicle-selector" style="display:none;">
-                    <div class="v-type active" id="btn-moto" onclick="setSubVehicle('moto', this)"><i class="fa fa-motorcycle" style="font-size: 1.5em;"></i><span>Moto</span></div>
-                    <div class="v-type" id="btn-car" onclick="setSubVehicle('car', this)"><i class="fa fa-car-side" style="font-size: 1.5em;"></i><span>Car</span></div>
-                </div>
-
-                <div class="result-card" id="main-result-card" style="border-top: 4px solid #27ae60;">
-                    <div id="public-fare-box">
-                        <strong>Est. Fare</strong>
-                        <div style="font-size: 1.5em; font-weight: bold; color: #27ae60;" id="fare-display">₱ 0.00</div>
-                    </div>
-                    <div id="private-dist-box" style="display:none;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <div><strong>Distance</strong><div id="dist-display">0.00 km</div></div>
-                            <div><strong>Est. Arrival</strong><div id="time-display">--:--</div></div>
+                    <div class="result-card" id="main-result-card" style="border-top: 4px solid #27ae60;">
+                        <div id="public-fare-box"><strong>Est. Fare</strong><div style="font-size: 1.5em; font-weight: bold; color: #27ae60;" id="fare-display">₱ 0.00</div></div>
+                        <div id="private-dist-box" style="display:none;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <div><strong>Distance</strong><div id="dist-display">0.00 km</div></div>
+                                <div><strong>Arrival</strong><div id="time-display">--:--</div></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="leaflet-sidebar-pane" id="settings">
-                <h1 class="leaflet-sidebar-header">System Controls<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
-                <div style="padding: 20px 10px;">
-                    <button onclick="resetMarkers()" style="width: 100%; padding: 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                        <i class="fa fa-trash"></i> Reset All Markers
-                    </button>
-                    <p style="font-size: 0.8em; color: #888; margin-top: 10px; text-align: center;">This will clear your current origin and destination points.</p>
+            <div class="leaflet-sidebar-pane" id="analyst">
+                <h1 class="leaflet-sidebar-header">MONTE Analyst<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                <div style="padding: 15px;">
+                    <div id="clock-container">
+                        <span id="clock-time">00:00:00</span>
+                        <span id="clock-date" style="font-size: 0.7em;">Loading...</span>
+                    </div>
+
+                    <div id="bot-panel">
+                        <div class="bot-header"><i class="fa fa-robot"></i> MONTE Intelligence</div>
+                        <div id="bot-message">Monitoring SJDM transit systems...</div>
+                        <div id="bot-fact" style="margin-top: 8px; font-style: italic; font-size: 0.9em; color: #7f8c8d;"></div>
+                    </div>
+
+                    <div class="result-card" id="weather-panel" style="border-top: 4px solid #3498db;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i id="weather-icon" class="fa fa-cloud-sun" style="font-size: 1.5em; color: #3498db;"></i>
+                            <div>
+                                <strong id="weather-temp">Loading...</strong>
+                                <div id="weather-desc" style="font-size: 0.8em; color: #777;">Syncing weather data...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="result-card" id="density-card" style="border-top: 4px solid #e67e22;">
+                        <div class="bot-header"><i class="fa fa-microscope"></i> Density Analyst</div>
+                        <div id="density-report" style="font-size: 0.9em; margin-top: 8px;">
+                            Select a destination to assess local congestion probability.
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="leaflet-sidebar-pane" id="planner">
                 <h1 class="leaflet-sidebar-header">Route Details<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
-                <div style="padding-top:15px;">
+                <div style="padding:15px;">
                     <div id="origin-box"></div>
                     <div id="dest-box"></div>
-                    <div class="result-card" id="traffic-card" style="border-left: 5px solid #ccc;">
+                    <div class="result-card" id="traffic-card">
                         <i id="traffic-icon" class="fa fa-clock"></i>
-                        <strong id="traffic-status">Analyzing Traffic...</strong>
-                        <div id="traffic-desc">Waiting for input...</div>
+                        <strong id="traffic-status">Status</strong>
+                        <div id="traffic-desc">Ready for input.</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="leaflet-sidebar-pane" id="settings">
+                <h1 class="leaflet-sidebar-header">System Settings<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                <div style="padding:15px;">
+                    <div class="theme-container">
+                        <button id="t-light" class="theme-btn" onclick="setTheme('light')">Light</button>
+                        <button id="t-dark" class="theme-btn" onclick="setTheme('dark')">Dark</button>
+                    </div>
+                    <button onclick="resetMarkers()" style="width: 100%; padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px;">Reset All Data</button>
                 </div>
             </div>
         </div>
@@ -174,191 +171,125 @@
 
     <script>
         var sjdm = [14.8114, 121.0450];
-        var originMarker, destMarker, routingControl, walkingRouteControl;
+        var originMarker, destMarker, routingControl;
         var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
-        var terminalData = { features: [] };
-        var todaLayer = L.layerGroup(); 
+        var currentRain = 0;
         var clickCount = 0;
 
-        // Bot Knowledge: Specific SJDM Zones
         const sjdmZones = [
-            { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
-            { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "High congestion at Muzon intersection. Expect slow movement." },
-            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student activity zone detected. Drive carefully." }
+            { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "High commercial activity." },
+            { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "Major transit bottleneck." },
+            { name: "St. Joseph Church Zone", coords: [14.8190, 121.0440], radius: 0.3, msg: "Pedestrian heavy zone." },
+            { name: "School Zone (CSanSci)", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student peak activity." }
+        ];
+
+        const sjdmFacts = [
+            "SJDM is the most populous city in Central Luzon.",
+            "Known as the 'Balcony of the Metropolis' due to its elevation.",
+            "The city serves as a gateway between Bulacan and Metro Manila.",
+            "Muzon is one of the busiest crossroads in the city."
         ];
 
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
         var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
         var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 
-        fetch('Tricycle_Toda.geojson') 
-            .then(res => res.json())
-            .then(data => {
-                terminalData = data;
-                L.geoJSON(data, {
-                    pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, fillColor: "#e67e22", color: "#fff", weight: 2, fillOpacity: 0.9 }),
-                    onEachFeature: (f, l) => l.bindPopup("<b>" + (f.properties.Name || "Terminal") + "</b>")
-                }).addTo(todaLayer);
-            });
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString();
+            document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
 
-        function getDistance(lat1, lon1, lat2, lon2) {
-            var R = 6371;
-            var dLat = (lat2-lat1)*Math.PI/180;
-            var dLon = (lon2-lon1)*Math.PI/180;
-            var a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        async function fetchWeather() {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=14.81&longitude=121.04&current_weather=true`);
+                const data = await res.json();
+                const temp = data.current_weather.temperature;
+                currentRain = data.current_weather.weathercode > 50 ? 1 : 0;
+                document.getElementById('weather-temp').innerText = temp + "°C";
+                document.getElementById('weather-desc').innerText = currentRain ? "Rainy conditions" : "Fair weather";
+                document.getElementById('weather-icon').className = currentRain ? "fa fa-cloud-showers-heavy" : "fa fa-cloud-sun";
+            } catch (e) { document.getElementById('weather-temp').innerText = "Offline"; }
         }
 
-        function resetMarkers() {
-            clickCount = 0;
-            if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
-            if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
-            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-            if (walkingRouteControl) { map.removeControl(walkingRouteControl); walkingRouteControl = null; }
-            
-            document.getElementById('fare-display').innerText = "₱ 0.00";
-            document.getElementById('dist-display').innerText = "0.00 km";
-            document.getElementById('time-display').innerText = "--:--";
-            document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
-            document.getElementById('traffic-desc').innerText = "Waiting for input...";
-            document.getElementById('bot-message').innerText = "Monitoring city transit...";
-        }
-
-        function updateTrafficStatus() {
+        function getTrafficMultiplier() {
             const hour = new Date().getHours();
-            let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
-            let botText = "Roads look clear for SJDM today. Enjoy your trip!";
-
-            // Check Time-based traffic
+            let status = { label: "Off-Peak", mult: 1, color: "#27ae60", icon: "fa-check" };
+            
             if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
-                status = { label: "Heavy Rush Hour", desc: "Expect significant delays", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
-                botText = "🛑 <b>Rush Hour Alert:</b> Traffic is heavy on main arteries. Plan for delays.";
+                status = { label: "Rush Hour", mult: 1.8, color: "#e74c3c", icon: "fa-exclamation-triangle" };
             } else if (hour >= 10 && hour <= 15) {
-                status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
-                botText = "Traffic is moderate. Transit times are within normal range.";
-            }
-
-            // Check Zone-based traffic (if destination exists)
-            if (destMarker) {
-                const dl = destMarker.getLatLng();
-                sjdmZones.forEach(zone => {
-                    if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
-                        botText = `📍 <b>${zone.name}:</b> ${zone.msg}`;
-                    }
-                });
+                status = { label: "Moderate", mult: 1.3, color: "#f1c40f", icon: "fa-clock" };
             }
 
             const card = document.getElementById('traffic-card');
             card.style.borderLeft = "5px solid " + status.color;
             document.getElementById('traffic-icon').className = "fa " + status.icon;
             document.getElementById('traffic-status').innerText = status.label;
-            document.getElementById('traffic-desc').innerText = status.desc;
-            document.getElementById('bot-message').innerHTML = botText;
-            
-            return status.multiplier;
+            return status.mult;
         }
 
-        function calculatePublicFare(dist) {
-            let total = 0;
-            const isDiscounted = (userProfile !== 'regular');
+        function runAnalyticBot() {
+            const hour = new Date().getHours();
+            let botMsg = "System operational.";
+            let score = 0;
+            let factors = [];
 
-            if (currentVehicle === 'jeep') {
-                total = (dist <= 4) ? 13 : 13 + (Math.ceil(dist - 4) * 1.50);
-            } else if (currentVehicle === 'bus') {
-                total = (dist <= 5) ? 15 : 15 + (Math.ceil(dist - 5) * 2.65);
-            } else if (currentVehicle === 'trike') {
-                let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
-                const triMode = document.getElementById('trike-mode').value;
-                if (triMode === 'regular') {
-                    total = baseFare;
-                } else {
-                    const multipliers = { "special-1": 4, "special-2": 2, "special-3": 1.5 };
-                    total = baseFare * (multipliers[triMode] || 1);
-                }
+            // Time Factor
+            if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) { score += 40; factors.push("Rush Hour"); }
+            if (currentRain) { score += 20; factors.push("Rain delays"); }
+
+            if (destMarker) {
+                const dl = destMarker.getLatLng();
+                sjdmZones.forEach(zone => {
+                    const dist = map.distance(dl, L.latLng(zone.coords));
+                    if (dist < zone.radius * 1000) {
+                        score += 35;
+                        factors.push(zone.name);
+                        botMsg = `Alert: High activity detected near ${zone.name}.`;
+                    }
+                });
             }
+
+            document.getElementById('bot-message').innerHTML = botMsg;
+            document.getElementById('bot-fact').innerText = "Did you know? " + sjdmFacts[Math.floor(Math.random() * sjdmFacts.length)];
             
-            if (isDiscounted) total *= 0.8;
-            document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
+            let level = score > 65 ? "CRITICAL" : (score > 35 ? "HIGH" : "STABLE");
+            let col = score > 65 ? "#e74c3c" : (score > 35 ? "#e67e22" : "#27ae60");
+            document.getElementById('density-report').innerHTML = `<b style="color:${col}">${level} CONGESTION PROBABILITY</b><br>Factors: ${factors.join(', ') || 'None'}`;
         }
 
         function updateMONTE() {
             if (!originMarker || !destMarker) return;
             if (routingControl) map.removeControl(routingControl);
             
-            let start = originMarker.getLatLng(); 
-
-            if (currentMode === 'public' && currentVehicle === 'trike') {
-                const res = findNearestToda(start);
-                if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
-            }
-
-            let routeProfile = 'car';
-            let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
-
-            if (currentVehicle === 'moto') {
-                routeProfile = 'bicycle';
-                pathColor = '#e67e22'; 
-            }
-
-            const trafficMult = updateTrafficStatus();
-
+            const mult = getTrafficMultiplier();
             routingControl = L.Routing.control({
-                waypoints: [start, destMarker.getLatLng()],
-                router: L.Routing.osrmv1({ 
-                    serviceUrl: 'https://router.project-osrm.org/route/v1',
-                    profile: routeProfile 
-                }),
+                waypoints: [originMarker.getLatLng(), destMarker.getLatLng()],
+                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: currentVehicle === 'moto' ? 'bicycle' : 'car' }),
                 createMarker: () => null,
-                lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] }
+                lineOptions: { styles: [{ color: currentMode === 'public' ? '#27ae60' : '#3498db', weight: 6 }] }
             }).on('routesfound', e => {
                 let d = e.routes[0].summary.totalDistance / 1000;
-                let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
-
+                let t = Math.round((e.routes[0].summary.totalTime / 60) * mult);
+                
                 if (currentMode === 'public') {
-                    calculatePublicFare(d);
-                    document.getElementById('public-fare-box').style.display = 'block';
-                    document.getElementById('private-dist-box').style.display = 'none';
+                    let fare = (d <= 4) ? 13 : 13 + (Math.ceil(d-4) * 1.5);
+                    if (userProfile !== 'regular') fare *= 0.8;
+                    document.getElementById('fare-display').innerText = "₱ " + fare.toFixed(2);
                 } else {
-                    document.getElementById('public-fare-box').style.display = 'none';
-                    document.getElementById('private-dist-box').style.display = 'block';
                     document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-                    
-                    let arrival = new Date();
-                    arrival.setMinutes(arrival.getMinutes() + t);
-                    document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    let arrival = new Date(); arrival.setMinutes(arrival.getMinutes() + t);
+                    document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
                 }
+                runAnalyticBot();
             }).addTo(map);
         }
 
-        function findNearestToda(ll) {
-            let nearest = null, minD = Infinity;
-            terminalData.features.forEach(f => {
-                let d = getDistance(ll.lat, ll.lng, f.geometry.coordinates[1], f.geometry.coordinates[0]);
-                if (d < minD) { minD = d; nearest = f; }
-            });
-            return { terminal: nearest, distance: minD };
-        }
-
-        function checkNearestTodaUI(ll) {
-            if (currentVehicle !== 'trike' || currentMode !== 'public') return;
-            const res = findNearestToda(ll);
-            if (walkingRouteControl) map.removeControl(walkingRouteControl);
-            if (res.terminal) {
-                walkingRouteControl = L.Routing.control({
-                    waypoints: [ll, L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0])],
-                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'foot' }),
-                    createMarker: () => null,
-                    lineOptions: { styles: [{ color: '#3498db', weight: 4, dashArray: '5, 10' }] }
-                }).addTo(map);
-            }
-        }
-
         function setupMarker(ll, isOrigin) {
-            let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', e => {
-                if (isOrigin) checkNearestTodaUI(e.target.getLatLng());
-                updateMONTE();
-            });
-            if (isOrigin) { if(originMarker) map.removeLayer(originMarker); originMarker = m; checkNearestTodaUI(ll); }
+            let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', updateMONTE);
+            if (isOrigin) { if(originMarker) map.removeLayer(originMarker); originMarker = m; }
             else { if(destMarker) map.removeLayer(destMarker); destMarker = m; }
             updateMONTE();
         }
@@ -376,45 +307,46 @@
             document.getElementById('mode-private').className = m==='private'?'mode-btn active':'mode-btn';
             document.getElementById('public-selector').style.display = m==='public'?'grid':'none';
             document.getElementById('private-selector').style.display = m==='private'?'grid':'none';
-            if(m === 'private' && walkingRouteControl) map.removeControl(walkingRouteControl);
+            document.getElementById('public-fare-box').style.display = m==='public'?'block':'none';
+            document.getElementById('private-dist-box').style.display = m==='private'?'block':'none';
             updateMONTE();
         }
 
-        function setSubVehicle(t, el) {
-            currentVehicle = t;
-            document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
+        function setSubVehicle(v, el) {
+            currentVehicle = v;
+            document.querySelectorAll('.v-type').forEach(x => x.classList.remove('active'));
             el.classList.add('active');
-            if (t === 'trike' && currentMode === 'public') { todaLayer.addTo(map); if(originMarker) checkNearestTodaUI(originMarker.getLatLng()); }
-            else { map.removeLayer(todaLayer); if(walkingRouteControl) map.removeControl(walkingRouteControl); }
             updateMONTE();
         }
 
-        function setProfile(p, el) { 
-            userProfile = p; 
+        function setProfile(p, el) {
+            userProfile = p;
             document.querySelectorAll('.prof-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            updateMONTE(); 
+            updateMONTE();
         }
 
-        function setTheme(m) { 
+        function setTheme(m) {
             if(m === 'dark') document.body.classList.add('dark-theme');
             else document.body.classList.remove('dark-theme');
         }
 
         function goHome() { map.flyTo(sjdm, 13); }
+        function resetMarkers() {
+            clickCount = 0;
+            if (originMarker) map.removeLayer(originMarker);
+            if (destMarker) map.removeLayer(destMarker);
+            if (routingControl) map.removeControl(routingControl);
+            originMarker = destMarker = null;
+        }
 
-        var gO = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
+        var gO = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Origin" }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
         document.getElementById('origin-box').appendChild(gO.getContainer());
-        var gD = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
+        var gD = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Destination" }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
         document.getElementById('dest-box').appendChild(gD.getContainer());
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock-time').innerText = now.toLocaleTimeString();
-            document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
-            updateTrafficStatus(); // Update bot and traffic every minute
-        }
-        setInterval(updateClock, 1000);
+        fetchWeather();
+        runAnalyticBot();
     </script>
 </body>
 </html>
