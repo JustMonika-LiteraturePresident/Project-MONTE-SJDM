@@ -215,23 +215,71 @@
         }
 
         function updateMONTE() {
-            if (!originMarker || !destMarker) return;
-            if (routingControl) map.removeControl(routingControl);
-            
-            let start = originMarker.getLatLng(); 
+    if (!originMarker || !destMarker) return;
+    if (routingControl) map.removeControl(routingControl);
+    
+    let start = originMarker.getLatLng(); 
 
-            // Proximity logic for public vehicles
-            if (currentMode === 'public') {
-                const res = findNearestToda(start);
-                if (res.terminal) {
-                    const d = res.distance.toFixed(2);
-                    document.getElementById('prox-box').style.display = 'block';
-                    document.getElementById('prox-box').innerText = `Near: ${d}km to stop`;
-                    if (currentVehicle === 'trike') start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
-                }
-            } else {
-                document.getElementById('prox-box').style.display = 'none';
-            }
+    // Handle Public Mode Proximity
+    if (currentMode === 'public') {
+        const res = findNearestToda(start);
+        if (res.terminal) {
+            const d = res.distance.toFixed(2);
+            document.getElementById('prox-box').style.display = 'block';
+            document.getElementById('prox-box').innerText = `Near: ${d}km to stop`;
+            if (currentVehicle === 'trike') start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
+        }
+    } else {
+        document.getElementById('prox-box').style.display = 'none';
+    }
+
+    // Define different routers based on vehicle type
+    let selectedRouter;
+    let pathColor = '#3498db'; // Default Car Blue
+
+    if (currentVehicle === 'moto') {
+        pathColor = '#e67e22'; // Moto Orange
+        // Use the 'foot' or 'bicycle' service URL to allow shortcuts
+        selectedRouter = L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1',
+            profile: 'bicycle' 
+        });
+    } else {
+        // Use standard 'car' (driving) profile
+        selectedRouter = L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1',
+            profile: 'driving'
+        });
+    }
+
+    const trafficMult = updateTrafficStatus();
+
+    routingControl = L.Routing.control({
+        waypoints: [start, destMarker.getLatLng()],
+        router: selectedRouter,
+        createMarker: () => null,
+        lineOptions: { 
+            styles: [{ color: pathColor, weight: 6, opacity: 0.8 }],
+            addWaypoints: false 
+        }
+    }).on('routesfound', e => {
+        let d = e.routes[0].summary.totalDistance / 1000;
+        let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
+
+        if (currentMode === 'public') {
+            calculatePublicFare(d);
+            document.getElementById('public-fare-box').style.display = 'block';
+            document.getElementById('private-dist-box').style.display = 'none';
+        } else {
+            document.getElementById('public-fare-box').style.display = 'none';
+            document.getElementById('private-dist-box').style.display = 'block';
+            document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+            let arrival = new Date(); 
+            arrival.setMinutes(arrival.getMinutes() + t);
+            document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+    }).addTo(map);
+}
 
             // FORCED Profile logic
             let profileType = 'car';
