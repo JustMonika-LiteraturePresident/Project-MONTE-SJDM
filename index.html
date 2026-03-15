@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project MONTE - SJDM</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2@3.2.3/css/leaflet-sidebar.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
+    <style>
+        :root {
+            --bg-sidebar: #ffffff;
+            --text-main: #333333;
+            --card-bg: #ffffff;
+            --border-ui: #ddd;
+        }
+
+        body.dark-theme {
+            --bg-sidebar: #1a1a1a;
+            --text-main: #e0e0e0;
+            --card-bg: #2d2d2d;
+            --border-ui: #444;
+        }
+
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; transition: background 0.3s; }
+        html, body, #map { height: 100%; width: 100vw; overflow: hidden; }
+        
+        #home-btn {
+            position: absolute; top: 15px; left: 60px; z-index: 1100; 
+            padding: 10px 15px; background: white; border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 8px; cursor: pointer; font-weight: bold;
+        }
+
+        .leaflet-sidebar-content { background: var(--bg-sidebar); color: var(--text-main); overflow-y: auto !important; height: 100%; }
+        .leaflet-sidebar-pane { background: var(--bg-sidebar); }
+
+        #clock-container { 
+            background: #2c3e50; color: white; padding: 15px; border-radius: 8px; 
+            text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; 
+        }
+        #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
+        #clock-date { font-size: 0.85em; opacity: 0.9; text-transform: uppercase; }
+
+        .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: #eee; padding: 4px; border-radius: 8px; }
+        body.dark-theme .theme-container, body.dark-theme .profile-container { background: #444; }
+        .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .theme-btn.active { background: #3498db; color: white; }
+        .prof-btn.active { background: #27ae60; color: white; }
+
+        .mode-container { display: flex; gap: 8px; margin: 15px 0; background: #f0f0f0; padding: 6px; border-radius: 12px; }
+        body.dark-theme .mode-container { background: #333; }
+        .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
+        .mode-btn.active { background: #2c3e50; color: white; }
+
+        .vehicle-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
+        .v-type { padding: 6px 2px; border: 1px solid var(--border-ui); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; color: var(--text-main); transition: 0.2s; }
+        .v-type.active { border: 2px solid #3498db !important; background: #ebf5fb !important; color: #333; }
+        .v-icon { width: 30px; height: 30px; object-fit: contain; margin-bottom: 5px; }
+        .v-type span { font-size: 0.65em; font-weight: bold; }
+
+        .sub-select { font-size: 0.55em; margin-top: 3px; width: 90%; border-radius: 3px; border: 1px solid #ccc; padding: 1px; }
+
+        .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
+        
+        #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
+        .leaflet-control-geocoder { width: 100% !important; box-shadow: none; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <button id="home-btn" onclick="goHome()">🏠 Return to SJDM</button>
+
+    <div id="sidebar" class="leaflet-sidebar collapsed">
+        <div class="leaflet-sidebar-tabs">
+            <ul role="tablist">
+                <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+                <li><a href="#planner" role="tab"><i class="fa fa-route"></i></a></li>
+            </ul>
+        </div>
+
+        <div class="leaflet-sidebar-content">
+            <div class="leaflet-sidebar-pane" id="home">
+                <h1 class="leaflet-sidebar-header">MONTE Nav<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                
+                <div id="clock-container">
+                    <span id="clock-time">00:00:00</span>
+                    <span id="clock-date">Loading Date...</span>
+                </div>
+
+                <p style="margin: 10px 0 5px 0; font-size: 0.8em; font-weight: bold;">Display Theme:</p>
+                <div class="theme-container">
+                    <button id="t-light" class="theme-btn" onclick="setTheme('light')">Light</button>
+                    <button id="t-dark" class="theme-btn" onclick="setTheme('dark')">Dark</button>
+                    <button id="t-auto" class="theme-btn active" onclick="setTheme('auto')">Auto</button>
+                </div>
+
+                <p style="margin: 15px 0 5px 0; font-size: 0.9em; font-weight: bold;">User Profile:</p>
+                <div class="profile-container">
+                    <button class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
+                    <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
+                    <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
+                </div>
+
+                <div class="mode-container">
+                    <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')"><span>Public</span></button>
+                    <button id="mode-private" class="mode-btn" onclick="switchMainMode('private')"><span>Private</span></button>
+                </div>
+
+                <div id="public-selector" class="vehicle-selector">
+                    <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
+                        <img src="dist/images/puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
+                        <select id="jeep-type" class="sub-select" onchange="updateMONTE()">
+                            <option value="traditional">Traditional Jeep</option>
+                            <option value="modern">Modern Jeep</option>
+                        </select>
+                    </div>
+                    <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
+                        <img src="dist/images/bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
+                        <select id="bus-type" class="sub-select" onchange="updateMONTE()">
+                            <option value="regular">Regular Bus</option>
+                            <option value="p2p">P2P Bus</option>
+                        </select>
+                    </div>
+                    <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
+                        <img src="dist/images/tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
+                        <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
+                            <option value="regular">Trike Regular</option>
+                            <option value="special-1">Trike Special P1</option>
+                            <option value="special-2">Trike Special P2</option>
+                            <option value="special-3">Trike Special P3</option>
+                        </select>
+                    </div>
+                    <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
+                        <i class="fa fa-van-shuttle" style="font-size: 1.4em; margin-bottom:5px;"></i>
+                        <span>UV Exp</span>
+                    </div>
+                    <div class="v-type" id="btn-lrt" onclick="setSubVehicle('lrt', this)" style="opacity: 0.8; border-style: dashed;">
+                        <i class="fa fa-train-subway" style="font-size: 1.4em; margin-bottom:5px;"></i>
+                        <span>LRT-7</span>
+                    </div>
+                </div>
+
+                <div id="private-selector" class="vehicle-selector" style="display:none;">
+                    <div class="v-type active" id="btn-moto" onclick="setSubVehicle('moto', this)"><i class="fa fa-motorcycle" style="font-size: 1.5em; margin-bottom:5px;"></i><span>Moto</span></div>
+                    <div class="v-type" id="btn-car" onclick="setSubVehicle('car', this)"><i class="fa fa-car-side" style="font-size: 1.5em; margin-bottom:5px;"></i><span>Car</span></div>
+                </div>
+
+                <div class="result-card" id="main-result-card" style="border-top: 4px solid #27ae60;">
+                    <div id="public-fare-box">
+                        <strong>Est. Fare</strong>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #27ae60;" id="fare-display">₱ 0.00</div>
+                    </div>
+                    <div id="private-dist-box" style="display:none;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div><strong>Distance</strong><div style="font-size: 1.2em; font-weight: bold; color: #3498db;" id="dist-display">0.00 km</div></div>
+                            <div style="text-align: right;"><strong>Est. Time</strong><div style="font-size: 1.2em; font-weight: bold; color: #2c3e50;" id="time-display">0 mins</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="leaflet-sidebar-pane" id="planner">
+                <h1 class="leaflet-sidebar-header">Route Details<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                <div style="padding-top:15px;">
+                    <div id="origin-box"></div>
+                    <div id="dest-box"></div>
+                    
+                    <div class="result-card" style="border-left: 4px solid #9b59b6; background: #fdfaff;">
+                        <p style="font-weight: bold; color: #8e44ad; font-size: 0.8em; margin: 0 0 5px 0;">GPS COORDINATES</p>
+                        <div style="font-size: 0.75em; line-height: 1.6; font-family: monospace;">
+                            <strong>Origin:</strong> <span id="origin-coords">Not set</span><br>
+                            <strong>Dest:</strong> <span id="dest-coords">Not set</span>
+                        </div>
+                    </div>
+
+                    <div class="result-card" id="traffic-card" style="border-left: 5px solid #ccc;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i id="traffic-icon" class="fa fa-clock"></i>
+                            <div>
+                                <strong id="traffic-status" style="font-size: 0.9em;">Analyzing Traffic...</strong>
+                                <div id="traffic-desc" style="font-size: 0.7em; color: #666;">Waiting...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="result-card" id="weather-card" style="border-left: 5px solid #3498db;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i id="weather-icon" class="fa fa-cloud-sun"></i>
+                            <div>
+                                <strong id="weather-status" style="font-size: 0.9em;">Weather Condition</strong>
+                                <div id="weather-desc" style="font-size: 0.7em; color: #666;">Checking SJDM weather...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2@3.2.3/js/leaflet-sidebar.min.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        var sjdm = [14.8114, 121.0450];
+        var originMarker, destMarker, routingControl;
+        var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep', currentTheme = 'auto';
+        var trafficMultiplier = 1.0, weatherMultiplier = 1.0;
+        var walkingRouteControl; // Global variable to store the walking path
+        
+        var terminalData = { features: [] };
+        var todaLayer = L.layerGroup(); 
+
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+        var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+        
+        var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.layers({"Street": osm, "Satellite": satellite}, null, {position: 'topright'}).addTo(map);
+        var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
+
+        // Fetch GeoJSON and load into LayerGroup
+        fetch('dist/data/Tricycle_Toda.geojson') 
+            .then(response => response.json())
+            .then(data => {
+                terminalData = data;
+                L.geoJSON(data, {
+                    pointToLayer: (feature, latlng) => {
+                        return L.circleMarker(latlng, {
+                            radius: 6, fillColor: "#e67e22", color: "#fff", weight: 2, fillOpacity: 0.9
+                        });
+                    },
+                    onEachFeature: (feature, layer) => {
+                        // Looks for .Name (capital N) first, as exported by QGIS
+                        let termName = feature.properties.Name || feature.properties.name || "Unknown Terminal";
+                        layer.bindPopup("<b>" + termName + "</b><br>Tricycle Terminal");
+                    }
+                }).addTo(todaLayer);
+            })
+            .catch(err => console.error("Could not load TODA data:", err));
+
+        // Re-added the math function needed to calculate distance
+        function getDistance(lat1, lon1, lat2, lon2) {
+            var R = 6371; // Radius of the earth in km
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // Restored and simplified the Nearest Toda finder
+        function findNearestToda(userLatLng) {
+            if (!terminalData.features || !terminalData.features.length) return null;
+            let nearest = null;
+            let minDistance = Infinity;
+
+            terminalData.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    let coords = feature.geometry.coordinates;
+                    let d = getDistance(userLatLng.lat, userLatLng.lng, coords[1], coords[0]);
+                    if (d < minDistance) { 
+                        minDistance = d; 
+                        nearest = feature; 
+                    }
+                }
+            });
+            return { terminal: nearest, distance: minDistance };
+        }
+
+        function checkNearestTodaUI(latlng) {
+            if (currentVehicle !== 'trike' || !terminalData.features.length) return;
+            
+            const result = findNearestToda(latlng);
+            const statusEl = document.getElementById('traffic-status');
+            const descEl = document.getElementById('traffic-desc');
+            const iconEl = document.getElementById('traffic-icon');
+
+            if (walkingRouteControl) {
+                map.removeControl(walkingRouteControl);
+            }
+
+            if (result && result.terminal) {
+                let termName = result.terminal.properties.Name || result.terminal.properties.name;
+                
+                statusEl.innerText = "Nearest: " + termName; 
+                statusEl.style.color = "#e67e22";
+                descEl.innerText = "Walk " + (result.distance * 1000).toFixed(0) + "m to this terminal.";
+                iconEl.className = "fa fa-person-walking"; 
+                iconEl.style.color = "#3498db";
+
+                const termCoords = result.terminal.geometry.coordinates;
+                walkingRouteControl = L.Routing.control({
+                    waypoints: [
+                        latlng, 
+                        L.latLng(termCoords[1], termCoords[0])
+                    ],
+                    router: L.Routing.osrmv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1',
+                        profile: 'foot' 
+                    }),
+                    createMarker: () => null, 
+                    addWaypoints: false,
+                    routeWhileDragging: false,
+                    show: false, 
+                    lineOptions: {
+                        styles: [{ color: '#3498db', weight: 4, dashArray: '5, 10', opacity: 0.8 }] 
+                    }
+                }).addTo(map);
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hour = now.getHours();
+            const day = now.getDay();
+            const month = now.getMonth();
+
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString();
+            document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+            
+            if (currentVehicle !== 'trike') {
+                let tStatus = "Off-Peak", tDesc = "Roads are clear.", tColor = "#27ae60", tIcon = "fa-circle-check";
+                trafficMultiplier = 1.0;
+                if (day === 0 || day === 6) { tStatus = "Weekend Flow"; tDesc = "Moderate volume near malls."; tColor = "#f39c12"; trafficMultiplier = 1.15; } 
+                else if ((hour >= 6 && hour <= 9) || (hour >= 17 && hour <= 20)) { tStatus = "RUSH HOUR"; tDesc = "Heavy congestion on Quirino Hwy."; tColor = "#e74c3c"; tIcon = "fa-triangle-exclamation"; trafficMultiplier = 1.40; }
+                
+                document.getElementById('traffic-status').innerText = tStatus;
+                document.getElementById('traffic-status').style.color = tColor;
+                document.getElementById('traffic-desc').innerText = tDesc;
+                document.getElementById('traffic-icon').className = "fa " + tIcon;
+                document.getElementById('traffic-icon').style.color = tColor;
+            }
+
+            let wStatus = "Sunny / Clear", wDesc = "Optimal visibility in SJDM.", wIcon = "fa-sun", wColor = "#f1c40f";
+            weatherMultiplier = 1.0;
+            if (month >= 5 && month <= 9) { wStatus = "Monsoon Season"; wDesc = "Rain expected. Roads may be slippery."; wIcon = "fa-cloud-showers-heavy"; wColor = "#3498db"; weatherMultiplier = 1.25; }
+            
+            document.getElementById('weather-status').innerText = wStatus;
+            document.getElementById('weather-status').style.color = wColor;
+            document.getElementById('weather-desc').innerText = wDesc;
+            document.getElementById('weather-icon').className = "fa " + wIcon;
+            document.getElementById('weather-icon').style.color = wColor;
+
+            if (currentTheme === 'auto') applyTheme(hour >= 18 || hour < 6);
+        }
+        setInterval(updateClock, 1000);
+
+        function setTheme(mode) {
+            currentTheme = mode;
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('t-' + mode).classList.add('active');
+            if (mode === 'light') applyTheme(false);
+            else if (mode === 'dark') applyTheme(true);
+            else updateClock();
+        }
+
+        function applyTheme(isDark) {
+            if (isDark) {
+                document.body.classList.add('dark-theme');
+                if (!map.hasLayer(darkMap)) { map.removeLayer(osm); darkMap.addTo(map); }
+            } else {
+                document.body.classList.remove('dark-theme');
+                if (!map.hasLayer(osm)) { map.removeLayer(darkMap); osm.addTo(map); }
+            }
+        }
+
+        function calculatePublicFare(dist) {
+            let total = 0;
+            let isSpecial = false;
+            let showLRTMsg = false;
+
+            if (currentVehicle === 'jeep') {
+                const type = document.getElementById('jeep-type').value;
+                let baseFare = (type === 'traditional') ? 13 : 15;
+                total = (dist <= 4) ? baseFare : baseFare + ((dist - 4) * 1.5);
+            } else if (currentVehicle === 'bus') {
+                const bType = document.getElementById('bus-type').value;
+                if (bType === 'p2p') { total = (dist <= 20) ? 70 : 100; isSpecial = true; } 
+                else { total = (dist <= 5) ? 15 : 15 + ((dist - 5) * 2.65); }
+            } else if (currentVehicle === 'trike') {
+                const trikeMode = document.getElementById('trike-mode').value;
+                if (trikeMode.startsWith('special')) {
+                    isSpecial = true;
+                    let passengers = parseInt(trikeMode.split('-')[1]);
+                    let wholeRide = (dist <= 1) ? 50 : 50 + ((dist - 1) * 10);
+                    total = wholeRide / passengers;
+                } else { total = (dist <= 1) ? 12 : 12 + ((dist - 1) * 2); }
+            } else if (currentVehicle === 'uv') {
+                total = (dist <= 15) ? 60 : 80; isSpecial = true;
+            } else if (currentVehicle === 'lrt') { showLRTMsg = true; }
+
+            if (userProfile !== 'regular' && !isSpecial && !showLRTMsg) total *= 0.8;
+            
+            const display = document.getElementById('fare-display');
+            if (showLRTMsg) {
+                display.innerHTML = "<span style='font-size: 0.45em; color: #e67e22;'>UNDER CONSTRUCTION</span>";
+            } else {
+                display.innerText = "₱ " + total.toFixed(2);
+                display.style.color = isSpecial ? "#e67e22" : "#27ae60";
+            }
+        }
+
+        function updateMONTE() {
+            if (!originMarker || !destMarker) return;
+            if (routingControl) map.removeControl(routingControl);
+            
+            let serviceUrl = (currentMode === 'private' && currentVehicle === 'moto') ? 'https://routing.openstreetmap.de/routed-bike/route/v1' : 'https://routing.openstreetmap.de/routed-car/route/v1';
+            
+            routingControl = L.Routing.control({
+                waypoints: [originMarker.getLatLng(), destMarker.getLatLng()],
+                router: L.Routing.osrmv1({ serviceUrl: serviceUrl }),
+                createMarker: () => null,
+                lineOptions: { styles: [{ color: currentMode === 'public' ? '#27ae60' : '#3498db', weight: 6 }] }
+            }).on('routesfound', (e) => {
+                let d = e.routes[0].summary.totalDistance / 1000;
+                let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMultiplier * weatherMultiplier);
+                
+                if (currentMode === 'public') calculatePublicFare(d);
+                else {
+                    document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+                    document.getElementById('time-display').innerText = t + " mins";
+                }
+            }).addTo(map);
+        }
+
+        function updateAddressBox(latlng, boxId) {
+            L.Control.Geocoder.nominatim().reverse(latlng, map.options.crs.scale(map.getZoom()), (results) => {
+                if (results && results[0]) {
+                    const input = document.querySelector(boxId + ' input');
+                    if (input) input.value = results[0].name;
+                }
+            });
+            document.getElementById('origin-coords').innerText = originMarker ? originMarker.getLatLng().lat.toFixed(5) + ", " + originMarker.getLatLng().lng.toFixed(5) : "Not set";
+            document.getElementById('dest-coords').innerText = destMarker ? destMarker.getLatLng().lat.toFixed(5) + ", " + destMarker.getLatLng().lng.toFixed(5) : "Not set";
+        }
+
+        function setupMarker(latlng, isOrigin) {
+            let marker = L.marker(latlng, {draggable: true}).addTo(map).on('dragend', (e) => { 
+                updateMONTE(); 
+                updateAddressBox(e.target.getLatLng(), isOrigin ? '#origin-box' : '#dest-box'); 
+                if (isOrigin) checkNearestTodaUI(e.target.getLatLng());
+            });
+            if (isOrigin) {
+                if (originMarker) map.removeLayer(originMarker);
+                originMarker = marker;
+                checkNearestTodaUI(latlng);
+            } else {
+                if (destMarker) map.removeLayer(destMarker);
+                destMarker = marker;
+            }
+            updateMONTE();
+        }
+
+        map.on('click', (e) => {
+            if (originMarker && destMarker) {
+                map.removeLayer(originMarker); map.removeLayer(destMarker);
+                originMarker = null; destMarker = null;
+                if (routingControl) map.removeControl(routingControl);
+                if (walkingRouteControl) map.removeControl(walkingRouteControl);
+                document.querySelectorAll('.leaflet-control-geocoder input').forEach(i => i.value = "");
+                document.getElementById('origin-coords').innerText = "Not set";
+                document.getElementById('dest-coords').innerText = "Not set";
+                document.getElementById('fare-display').innerText = "₱ 0.00";
+                document.getElementById('dist-display').innerText = "0.00 km";
+                document.getElementById('time-display').innerText = "0 mins";
+                updateClock(); 
+                return;
+            }
+            if (!originMarker) { setupMarker(e.latlng, true); updateAddressBox(e.latlng, '#origin-box'); }
+            else if (!destMarker) { setupMarker(e.latlng, false); updateAddressBox(e.latlng, '#dest-box'); }
+        });
+
+        var geocoderO = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Search Origin..." }).on('markgeocode', e => { setupMarker(e.geocode.center, true); updateAddressBox(e.geocode.center, '#origin-box'); }).addTo(map);
+        document.getElementById('origin-box').appendChild(geocoderO.getContainer());
+        var geocoderD = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Search Destination..." }).on('markgeocode', e => { setupMarker(e.geocode.center, false); updateAddressBox(e.geocode.center, '#dest-box'); }).addTo(map);
+        document.getElementById('dest-box').appendChild(geocoderD.getContainer());
+
+        function switchMainMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('mode-' + mode).classList.add('active');
+            document.getElementById('public-selector').style.display = (mode === 'public') ? 'grid' : 'none';
+            document.getElementById('private-selector').style.display = (mode === 'private') ? 'grid' : 'none';
+            document.getElementById('public-fare-box').style.display = (mode === 'public') ? 'block' : 'none';
+            document.getElementById('private-dist-box').style.display = (mode === 'private') ? 'block' : 'none';
+            
+            if (mode !== 'public' || currentVehicle !== 'trike') map.removeLayer(todaLayer);
+            else if (currentVehicle === 'trike') todaLayer.addTo(map);
+            
+            updateMONTE();
+        }
+
+        // Cleaned up setSubVehicle (removed the duplicate nesting)
+        function setSubVehicle(type, el) {
+            document.querySelectorAll('#public-selector .v-type, #private-selector .v-type').forEach(v => v.classList.remove('active'));
+            el.classList.add('active'); 
+            currentVehicle = type; 
+
+            if (type === 'trike' && currentMode === 'public') {
+                todaLayer.addTo(map);
+                if (originMarker) checkNearestTodaUI(originMarker.getLatLng());
+            } else {
+                map.removeLayer(todaLayer);
+                if (walkingRouteControl) map.removeControl(walkingRouteControl);
+                updateClock();
+            }
+            updateMONTE();
+        }
+
+        function setProfile(type, el) {
+            userProfile = type;
+            document.querySelectorAll('.prof-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active'); 
+            updateMONTE();
+        }
+
+        function goHome() { map.flyTo(sjdm, 13); }
+        updateClock();
+    </script>
+</body>
+</html>
