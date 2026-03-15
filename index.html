@@ -20,12 +20,6 @@
         .leaflet-sidebar-content { background: var(--bg-sidebar); color: var(--text-main); overflow-y: auto !important; height: 100%; }
         #clock-container { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; }
         #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
-        
-        /* Intelligence Bot Styling */
-        #bot-panel { background: rgba(52, 152, 219, 0.1); border-left: 5px solid #3498db; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85em; color: var(--text-main); line-height: 1.4; }
-        body.dark-theme #bot-panel { background: rgba(52, 152, 219, 0.2); }
-        .bot-header { font-weight: bold; color: #2980b9; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
-
         .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: #eee; padding: 4px; border-radius: 8px; }
         body.dark-theme .theme-container, body.dark-theme .profile-container { background: #444; }
         .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -34,7 +28,7 @@
         .mode-container { display: flex; gap: 8px; margin: 15px 0; background: #f0f0f0; padding: 6px; border-radius: 12px; }
         .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
         .mode-btn.active { background: #2c3e50; color: white; }
-        .vehicle-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
+        .vehicle-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
         .v-type { padding: 6px 2px; border: 1px solid var(--border-ui); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; color: var(--text-main); transition: 0.2s; }
         .v-type.active { border: 2px solid #3498db !important; background: #ebf5fb !important; color: #333; }
         .v-icon { width: 30px; height: 30px; object-fit: contain; margin-bottom: 5px; }
@@ -66,11 +60,6 @@
                     <span id="clock-date">Loading Date...</span>
                 </div>
 
-                <div id="bot-panel">
-                    <div class="bot-header"><i class="fa fa-robot"></i> MONTE Intelligence</div>
-                    <div id="bot-message">Initializing SJDM environmental sensors...</div>
-                </div>
-
                 <div class="theme-container">
                     <button id="t-light" class="theme-btn" onclick="setTheme('light')">Light</button>
                     <button id="t-dark" class="theme-btn" onclick="setTheme('dark')">Dark</button>
@@ -78,9 +67,9 @@
                 </div>
 
                 <div class="profile-container">
-                    <button id="p-reg" class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
-                    <button id="p-stu" class="prof-btn" onclick="setProfile('student', this)">Student</button>
-                    <button id="p-sen" class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
+                    <button class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
+                    <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
+                    <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
                 </div>
 
                 <div class="mode-container">
@@ -90,21 +79,21 @@
 
                 <div id="public-selector" class="vehicle-selector">
                     <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3448/3448339.png" class="v-icon">
+                        <img src="puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
                         <select id="jeep-type" class="sub-select" onchange="updateMONTE()">
                             <option value="traditional">Trad. Jeep</option>
                             <option value="modern">Modern Jeep</option>
                         </select>
                     </div>
                     <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3448/3448356.png" class="v-icon">
+                        <img src="bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
                         <select id="bus-type" class="sub-select" onchange="updateMONTE()">
                             <option value="regular">Regular</option>
                             <option value="p2p">P2P Bus</option>
                         </select>
                     </div>
                     <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2962/2962824.png" class="v-icon">
+                        <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
                         <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
                             <option value="regular">Regular</option>
                             <option value="special-1">Special (1p)</option>
@@ -112,7 +101,7 @@
                         </select>
                     </div>
                     <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" class="v-icon">
+                        <img src="UV.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=UV'">
                         <span>UV</span>
                     </div>
                 </div>
@@ -172,24 +161,23 @@
 
     <script>
         var sjdm = [14.8114, 121.0450];
-        var originMarker, destMarker, routingControl;
+        var originMarker, destMarker, routingControl, walkingRouteControl;
         var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
         var terminalData = { features: [] };
         var todaLayer = L.layerGroup(); 
         var clickCount = 0;
 
-        // Zone Data
-        const sjdmZones = [
-            { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, type: "Mall" },
-            { name: "Muzon Crossroads / Commercial Zone", coords: [14.8115, 121.0035], radius: 0.4, type: "Traffic Hub" },
-            { name: "Grotto Church Zone", coords: [14.8124, 121.0336], radius: 0.3, type: "Church" },
-            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, type: "School" },
-            { name: "Tungkong Mangga Hub", coords: [14.7990, 121.0490], radius: 0.5, type: "Hub" }
-        ];
-
-        var map = L.map('map', { zoomControl: false }).setView(sjdm, 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
         var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
+
+        fetch('Tricycle_Toda.geojson').then(res => res.json()).then(data => {
+            terminalData = data;
+            L.geoJSON(data, {
+                pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, fillColor: "#e67e22", color: "#fff", weight: 2, fillOpacity: 0.9 }),
+                onEachFeature: (f, l) => l.bindPopup("<b>" + (f.properties.Name || "Terminal") + "</b>")
+            }).addTo(todaLayer);
+        });
 
         function getDistance(lat1, lon1, lat2, lon2) {
             var R = 6371;
@@ -199,37 +187,31 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        function updateIntelligenceBot() {
-            const now = new Date();
-            const hour = now.getHours();
-            const botMsg = document.getElementById('bot-message');
+        function resetMarkers() {
+            clickCount = 0; 
+            if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
+            if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            if (walkingRouteControl) { map.removeControl(walkingRouteControl); walkingRouteControl = null; }
             
-            let statusText = "";
-            let trafficMultiplier = 1.0;
+            document.getElementById('fare-display').innerText = "₱ 0.00";
+            document.getElementById('dist-display').innerText = "0.00 km";
+            document.getElementById('time-display').innerText = "--:--";
+            document.getElementById('prox-box').style.display = 'none';
+            document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
+            document.querySelectorAll('.leaflet-control-geocoder-form input').forEach(el => el.value = "");
+        }
 
-            const isRushHour = (hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19);
-            
-            let activeZone = null;
-            if (destMarker) {
-                const dest = destMarker.getLatLng();
-                sjdmZones.forEach(zone => {
-                    const dist = getDistance(dest.lat, dest.lng, zone.coords[0], zone.coords[1]);
-                    if (dist <= zone.radius) activeZone = zone;
-                });
-            }
-
-            if (isRushHour) {
-                statusText = "🛑 <b>Rush Hour:</b> Heavy traffic near Tungkong Mangga & Muzon. Expect significant delays.";
-                trafficMultiplier = 1.8;
-            } else if (activeZone) {
-                statusText = `📍 <b>Zone Warning:</b> Approaching ${activeZone.name}. Traffic likely due to ${activeZone.type} volume.`;
-                trafficMultiplier = 1.4;
-            } else {
-                statusText = "✅ <b>Roads Clear:</b> SJDM traffic is currently stable. Standard flow detected.";
-            }
-
-            botMsg.innerHTML = statusText;
-            return trafficMultiplier;
+        function updateTrafficStatus() {
+            const hour = new Date().getHours();
+            let status = { label: "Light", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
+            if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) status = { label: "Heavy Rush Hour", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
+            else if (hour >= 10 && hour <= 15) status = { label: "Moderate", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
+            const card = document.getElementById('traffic-card');
+            card.style.borderLeft = "5px solid " + status.color;
+            document.getElementById('traffic-icon').className = "fa " + status.icon;
+            document.getElementById('traffic-status').innerText = status.label;
+            return status.multiplier;
         }
 
         function updateMONTE() {
@@ -237,14 +219,38 @@
             if (routingControl) map.removeControl(routingControl);
             
             let start = originMarker.getLatLng(); 
-            const trafficMult = updateIntelligenceBot();
 
-            let profileType = (currentVehicle === 'moto') ? 'bicycle' : 'driving';
-            let pathColor = (currentVehicle === 'moto') ? '#e67e22' : (currentMode === 'public' ? '#27ae60' : '#3498db');
+            // Proximity logic for public vehicles
+            if (currentMode === 'public') {
+                const res = findNearestToda(start);
+                if (res.terminal) {
+                    const d = res.distance.toFixed(2);
+                    document.getElementById('prox-box').style.display = 'block';
+                    document.getElementById('prox-box').innerText = `Near: ${d}km to stop`;
+                    if (currentVehicle === 'trike') start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
+                }
+            } else {
+                document.getElementById('prox-box').style.display = 'none';
+            }
+
+            // FORCED Profile logic
+            let profileType = 'car';
+            let pathColor = '#3498db';
+            if (currentVehicle === 'moto') {
+                profileType = 'bicycle'; // Access narrow roads
+                pathColor = '#e67e22';
+            } else if (currentMode === 'public') {
+                pathColor = '#27ae60';
+            }
+
+            const trafficMult = updateTrafficStatus();
 
             routingControl = L.Routing.control({
                 waypoints: [start, destMarker.getLatLng()],
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: profileType }),
+                router: L.Routing.osrmv1({ 
+                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                    profile: profileType // MANDATORY OVERRIDE
+                }),
                 createMarker: () => null,
                 lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] }
             }).on('routesfound', e => {
@@ -278,29 +284,31 @@
             document.getElementById('fare-display').innerText = "₱ " + (total * disc).toFixed(2);
         }
 
-        function resetMarkers() {
-            clickCount = 0;
-            if (originMarker) map.removeLayer(originMarker);
-            if (destMarker) map.removeLayer(destMarker);
-            if (routingControl) map.removeControl(routingControl);
-            originMarker = destMarker = null;
-            document.getElementById('prox-box').style.display = 'none';
-            document.getElementById('fare-display').innerText = "₱ 0.00";
+        function findNearestToda(ll) {
+            let nearest = null, minD = Infinity;
+            terminalData.features.forEach(f => {
+                let d = getDistance(ll.lat, ll.lng, f.geometry.coordinates[1], f.geometry.coordinates[0]);
+                if (d < minD) { minD = d; nearest = f; }
+            });
+            return { terminal: nearest, distance: minD };
+        }
+
+        function setupMarker(ll, isOrigin) {
+            let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', () => updateMONTE());
+            if (isOrigin) { if(originMarker) map.removeLayer(originMarker); originMarker = m; }
+            else { if(destMarker) map.removeLayer(destMarker); destMarker = m; }
+            updateMONTE();
         }
 
         map.on('click', e => {
             clickCount++;
-            let m = L.marker(e.latlng, {draggable: true}).addTo(map).on('dragend', updateMONTE);
-            if (clickCount === 1) originMarker = m;
-            else if (clickCount === 2) destMarker = m;
-            else resetMarkers();
-            updateMONTE();
+            if (clickCount === 1) setupMarker(e.latlng, true);
+            else if (clickCount === 2) setupMarker(e.latlng, false);
+            else resetMarkers(); // FIXED: Logic now triggers correctly on 3rd click
         });
 
         function switchMainMode(m) {
             currentMode = m;
-            document.getElementById('mode-public').className = m==='public'?'mode-btn active':'mode-btn';
-            document.getElementById('mode-private').className = m==='private'?'mode-btn active':'mode-btn';
             document.getElementById('public-selector').style.display = m==='public'?'grid':'none';
             document.getElementById('private-selector').style.display = m==='private'?'grid':'none';
             updateMONTE();
@@ -313,31 +321,25 @@
             updateMONTE();
         }
 
-        function setProfile(p, el) {
-            userProfile = p;
+        function setProfile(p, el) { 
+            userProfile = p; 
             document.querySelectorAll('.prof-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            updateMONTE();
+            updateMONTE(); 
         }
 
-        function setTheme(m) {
-            if (m === 'dark') document.body.classList.add('dark-theme');
-            else document.body.classList.remove('dark-theme');
-        }
-
+        function setTheme(m) { (m === 'dark') ? document.body.classList.add('dark-theme') : document.body.classList.remove('dark-theme'); }
         function goHome() { map.flyTo(sjdm, 13); }
 
+        var gO = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
+        document.getElementById('origin-box').appendChild(gO.getContainer());
+        var gD = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
+        document.getElementById('dest-box').appendChild(gD.getContainer());
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock-time').innerText = now.toLocaleTimeString();
             document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
-            updateIntelligenceBot();
         }, 1000);
-
-        var gO = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => {
-            resetMarkers(); clickCount = 1; originMarker = L.marker(e.geocode.center).addTo(map); updateMONTE();
-        }).addTo(map);
-        document.getElementById('origin-box').appendChild(gO.getContainer());
     </script>
 </body>
 </html>
