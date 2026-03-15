@@ -72,11 +72,12 @@
                     <span id="clock-time">00:00:00</span>
                     <span id="clock-date">Loading Date...</span>
                 </div>
-
+                
                 <div class="theme-container">
-                    <button id="t-light" class="theme-btn" onclick="setTheme('light')">Light</button>
-                    <button id="t-dark" class="theme-btn" onclick="setTheme('dark')">Dark</button>
-                    <button id="t-auto" class="theme-btn active" onclick="setTheme('auto')">Auto</button>
+                    <button id="t-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
+                    <button id="t-dark" class="theme-btn" onclick="setTheme('dark', this)">Dark</button>
+                    <button id="t-auto" class="theme-btn active" onclick="setTheme('auto', this)">Auto</button>
+                </div>
                 </div>
 
                 <div class="profile-container">
@@ -192,6 +193,77 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2@3.2.3/js/leaflet-sidebar.min.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+    <style>
+    /* ... existing styles ... */
+    
+    /* Theme Button Active States */
+    .theme-btn { 
+        background: #eee; 
+        color: #333; 
+        transition: 0.3s;
+    }
+    .theme-btn.active { 
+        background: #3498db !important; 
+        color: white !important; 
+        box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+    }
+    
+    /* Dark Mode Overrides */
+    body.dark-theme .theme-btn { background: #333; color: #ccc; }
+    body.dark-theme .theme-btn.active { background: #3498db !important; color: white !important; }
+</style>
+
+<script>
+    // Initialize both tile layers
+    var lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    });
+
+    var darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+    });
+
+    // Default to Light Tiles
+    var map = L.map('map', { 
+        zoomControl: false, 
+        layers: [lightTiles] 
+    }).setView(sjdm, 13);
+
+    function setTheme(mode, element) {
+        // 1. Update Button UI
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+        if (element) {
+            element.classList.add('active');
+        } else {
+            // Fallback for initialization
+            document.getElementById('t-' + mode).classList.add('active');
+        }
+
+        // 2. Update Body Class and Map Tiles
+        if (mode === 'dark') {
+            document.body.classList.add('dark-theme');
+            map.removeLayer(lightTiles);
+            darkTiles.addTo(map);
+        } else if (mode === 'light') {
+            document.body.classList.remove('dark-theme');
+            map.removeLayer(darkTiles);
+            lightTiles.addTo(map);
+        } else if (mode === 'auto') {
+            // Simple Auto logic based on time (6PM to 6AM = Dark)
+            const hour = new Date().getHours();
+            if (hour >= 18 || hour < 6) setTheme('dark');
+            else setTheme('light');
+            // Re-add active class to auto button after the recursion
+            document.getElementById('t-auto').classList.add('active');
+        }
+    }
+
+    // Update your HTML buttons to pass 'this'
+    // Example: <button id="t-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
+</script>
 
     <script>
         var sjdm = [14.8114, 121.0450];
