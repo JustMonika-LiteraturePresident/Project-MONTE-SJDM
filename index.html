@@ -18,15 +18,21 @@
         html, body, #map { height: 100%; width: 100vw; overflow: hidden; }
         #home-btn { position: absolute; top: 15px; left: 60px; z-index: 1100; padding: 10px 15px; background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; cursor: pointer; font-weight: bold; }
         .leaflet-sidebar-content { background: var(--bg-sidebar); color: var(--text-main); overflow-y: auto !important; height: 100%; }
+        
         #clock-container { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; }
         #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
         
-        /* Bot Styling */
-        #bot-panel { background: rgba(52, 152, 219, 0.1); border-left: 5px solid #3498db; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85em; color: var(--text-main); line-height: 1.4; }
-        body.dark-theme #bot-panel { background: rgba(52, 152, 219, 0.2); }
-        .bot-header { font-weight: bold; color: #2980b9; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
-        #bot-fact { margin-top: 8px; font-style: italic; font-size: 0.9em; color: #7f8c8d; border-top: 1px dashed #ccc; padding-top: 5px; }
+        /* Bot Tab Specific Styling */
+        .bot-status-bar { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; }
+        .status-dot { width: 10px; height: 10px; background: #27ae60; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        
+        #bot-message-large { font-size: 1.1em; font-weight: 500; color: #2980b9; margin: 15px 0; line-height: 1.5; }
+        .bot-data-card { background: var(--card-bg); border: 1px solid var(--border-ui); padding: 15px; border-radius: 10px; margin-top: 10px; }
+        #bot-fact-large { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #f1c40f; color: #555; font-style: italic; }
+        body.dark-theme #bot-fact-large { background: #333; color: #bbb; }
 
+        /* General UI components */
         .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: #eee; padding: 4px; border-radius: 8px; }
         body.dark-theme .theme-container, body.dark-theme .profile-container { background: #444; }
         .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -52,6 +58,7 @@
         <div class="leaflet-sidebar-tabs">
             <ul role="tablist">
                 <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+                <li><a href="#bot-tab" role="tab"><i class="fa fa-robot"></i></a></li>
                 <li><a href="#planner" role="tab"><i class="fa fa-route"></i></a></li>
                 <li><a href="#settings" role="tab"><i class="fa fa-rotate"></i></a></li>
             </ul>
@@ -64,13 +71,6 @@
                 <div id="clock-container">
                     <span id="clock-time">00:00:00</span>
                     <span id="clock-date">Loading Date...</span>
-                </div>
-
-                <div id="bot-panel">
-                    <div class="bot-header"><i class="fa fa-robot"></i> MONTE Intelligence</div>
-                    <div id="bot-message">Monitoring city transit...</div>
-                    <div id="bot-weather" style="font-size: 0.9em; margin-top: 5px; color: #34495e;"></div>
-                    <div id="bot-fact"></div>
                 </div>
 
                 <div class="theme-container">
@@ -143,13 +143,22 @@
                 </div>
             </div>
 
-            <div class="leaflet-sidebar-pane" id="settings">
-                <h1 class="leaflet-sidebar-header">System Controls<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
-                <div style="padding: 20px 10px;">
-                    <button onclick="resetMarkers()" style="width: 100%; padding: 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                        <i class="fa fa-trash"></i> Reset All Markers
-                    </button>
-                    <p style="font-size: 0.8em; color: #888; margin-top: 10px; text-align: center;">This will clear your current origin and destination points.</p>
+            <div class="leaflet-sidebar-pane" id="bot-tab">
+                <h1 class="leaflet-sidebar-header">MONTE Intelligence<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                <div style="padding: 15px;">
+                    <div class="bot-status-bar">
+                        <div class="status-dot"></div>
+                        <span>SJDM Live Transit Analytics Online</span>
+                    </div>
+
+                    <div id="bot-message-large">Analyzing city patterns...</div>
+
+                    <div class="bot-data-card">
+                        <div id="bot-weather-tab" style="margin-bottom: 10px;"><i class="fa fa-cloud-sun"></i> Loading weather...</div>
+                        <div id="bot-traffic-analysis"><i class="fa fa-chart-line"></i> Waiting for route input...</div>
+                    </div>
+
+                    <div id="bot-fact-large">Did you know? SJDM is the gateway between Metro Manila and Bulacan.</div>
                 </div>
             </div>
 
@@ -163,6 +172,15 @@
                         <strong id="traffic-status">Analyzing Traffic...</strong>
                         <div id="traffic-desc">Waiting for input...</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="leaflet-sidebar-pane" id="settings">
+                <h1 class="leaflet-sidebar-header">System Controls<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                <div style="padding: 20px 10px;">
+                    <button onclick="resetMarkers()" style="width: 100%; padding: 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                        <i class="fa fa-trash"></i> Reset All Markers
+                    </button>
                 </div>
             </div>
         </div>
@@ -184,18 +202,17 @@
         var clickCount = 0;
         var currentRain = false;
 
-        // Bot Knowledge
         const sjdmZones = [
             { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
             { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "High congestion at Muzon intersection. Expect slow movement." },
-            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student activity zone detected. Drive carefully." }
+            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student activity zone detected. Drive carefully near the campus." }
         ];
 
         const funFacts = [
             "SJDM is the most populous city in Central Luzon.",
             "Known as the 'Balcony of the Metropolis' due to its elevated topography.",
-            "The city serves as a gateway between Bulacan and Metro Manila.",
-            "Mount Balagbag in SJDM is a popular destination for hikers and bikers."
+            "Mount Balagbag is a popular destination for hikers and mountain bikers.",
+            "The city is home to several major resettlement projects in the Philippines."
         ];
 
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -218,67 +235,43 @@
                 const data = await res.json();
                 const temp = data.current_weather.temperature;
                 currentRain = data.current_weather.weathercode > 50;
-                document.getElementById('bot-weather').innerHTML = `<i class="fa ${currentRain ? 'fa-cloud-showers-heavy' : 'fa-sun'}"></i> Local Weather: ${temp}°C (${currentRain ? 'Rainy' : 'Clear'})`;
-            } catch (e) { console.log("Weather offline"); }
-        }
-
-        function getDistance(lat1, lon1, lat2, lon2) {
-            var R = 6371;
-            var dLat = (lat2-lat1)*Math.PI/180;
-            var dLon = (lon2-lon1)*Math.PI/180;
-            var a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function resetMarkers() {
-            clickCount = 0;
-            if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
-            if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
-            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-            if (walkingRouteControl) { map.removeControl(walkingRouteControl); walkingRouteControl = null; }
-            document.getElementById('fare-display').innerText = "₱ 0.00";
-            document.getElementById('dist-display').innerText = "0.00 km";
-            document.getElementById('time-display').innerText = "--:--";
-            document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
-            document.getElementById('traffic-desc').innerText = "Waiting for input...";
-            document.getElementById('bot-message').innerText = "Monitoring city transit...";
-            document.getElementById('bot-fact').innerText = "";
+                const weatherStr = `<i class="fa ${currentRain ? 'fa-cloud-showers-heavy' : 'fa-sun'}"></i> Outside: ${temp}°C (${currentRain ? 'Rainy' : 'Clear Skies'})`;
+                document.getElementById('bot-weather-tab').innerHTML = weatherStr;
+            } catch (e) { document.getElementById('bot-weather-tab').innerText = "Weather Service Offline"; }
         }
 
         function updateTrafficStatus() {
             const hour = new Date().getHours();
             let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
-            let botText = "Roads look clear for SJDM today. Enjoy your trip!";
+            let botText = "Roads look clear for San Jose del Monte right now. Perfect time for a trip!";
 
             if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
-                status = { label: "Heavy Rush Hour", desc: "Expect significant delays", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
-                botText = "🛑 <b>Rush Hour Alert:</b> Traffic is heavy on main arteries.";
+                status = { label: "Rush Hour", desc: "Heavy traffic on main roads", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
+                botText = "Traffic is heavy right now due to peak travel hours. Main arteries like Quirino Highway may be congested.";
             } else if (hour >= 10 && hour <= 15) {
                 status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
-                botText = "Traffic is moderate. Transit times are normal.";
+                botText = "Traffic is manageable. Travel times are roughly 30% longer than average.";
             }
 
             if (currentRain) {
                 status.multiplier += 0.3;
-                botText += " (Rain affecting speeds)";
+                botText += " Rain detected—expect slower transit speeds and potential tricycle scarcity.";
             }
 
             if (destMarker) {
                 const dl = destMarker.getLatLng();
                 sjdmZones.forEach(zone => {
                     if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
-                        botText = `📍 <b>${zone.name}:</b> ${zone.msg}`;
+                        botText = `Attention: You are heading toward the <b>${zone.name}</b>. ${zone.msg}`;
                     }
                 });
-                document.getElementById('bot-fact').innerHTML = "<b>Fun Fact:</b> " + funFacts[Math.floor(Math.random() * funFacts.length)];
+                document.getElementById('bot-fact-large').innerHTML = "<b>City Fact:</b> " + funFacts[Math.floor(Math.random() * funFacts.length)];
             }
 
-            const card = document.getElementById('traffic-card');
-            card.style.borderLeft = "5px solid " + status.color;
-            document.getElementById('traffic-icon').className = "fa " + status.icon;
             document.getElementById('traffic-status').innerText = status.label;
             document.getElementById('traffic-desc').innerText = status.desc;
-            document.getElementById('bot-message').innerHTML = botText;
+            document.getElementById('bot-message-large').innerHTML = botText;
+            document.getElementById('bot-traffic-analysis').innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
             
             return status.multiplier;
         }
@@ -286,16 +279,23 @@
         function calculatePublicFare(dist) {
             let total = 0;
             const isDiscounted = (userProfile !== 'regular');
-            if (currentVehicle === 'jeep') {
-                total = (dist <= 4) ? 13 : 13 + (Math.ceil(dist - 4) * 1.50);
-            } else if (currentVehicle === 'bus') {
-                total = (dist <= 5) ? 15 : 15 + (Math.ceil(dist - 5) * 2.65);
-            } else if (currentVehicle === 'trike') {
+            
+            // Check for missing data
+            if (currentVehicle === 'jeep' || currentVehicle === 'bus' || currentVehicle === 'uv') {
+                document.getElementById('fare-display').innerText = "Data Mapping...";
+                document.getElementById('fare-display').style.color = "#7f8c8d";
+                return;
+            }
+
+            document.getElementById('fare-display').style.color = "#27ae60";
+
+            if (currentVehicle === 'trike') {
                 let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
                 const triMode = document.getElementById('trike-mode').value;
                 const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
                 total = baseFare * (multipliers[triMode] || 1);
             }
+            
             if (isDiscounted) total *= 0.8;
             document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
         }
@@ -335,6 +335,28 @@
                     document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
             }).addTo(map);
+        }
+
+        // Helper functions from original code
+        function getDistance(lat1, lon1, lat2, lon2) {
+            var R = 6371;
+            var dLat = (lat2-lat1)*Math.PI/180;
+            var dLon = (lon2-lon1)*Math.PI/180;
+            var a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function resetMarkers() {
+            clickCount = 0;
+            if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
+            if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            if (walkingRouteControl) { map.removeControl(walkingRouteControl); walkingRouteControl = null; }
+            document.getElementById('fare-display').innerText = "₱ 0.00";
+            document.getElementById('dist-display').innerText = "0.00 km";
+            document.getElementById('time-display').innerText = "--:--";
+            document.getElementById('bot-message-large').innerText = "Analyzing city patterns...";
+            document.getElementById('bot-traffic-analysis').innerText = "Waiting for route input...";
         }
 
         function findNearestToda(ll) {
