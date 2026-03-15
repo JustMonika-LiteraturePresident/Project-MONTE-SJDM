@@ -20,6 +20,12 @@
         .leaflet-sidebar-content { background: var(--bg-sidebar); color: var(--text-main); overflow-y: auto !important; height: 100%; }
         #clock-container { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; }
         #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
+        
+        /* Bot Styling */
+        #bot-panel { background: rgba(52, 152, 219, 0.1); border-left: 5px solid #3498db; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85em; color: var(--text-main); line-height: 1.4; }
+        body.dark-theme #bot-panel { background: rgba(52, 152, 219, 0.2); }
+        .bot-header { font-weight: bold; color: #2980b9; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+
         .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: #eee; padding: 4px; border-radius: 8px; }
         body.dark-theme .theme-container, body.dark-theme .profile-container { background: #444; }
         .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -57,6 +63,11 @@
                 <div id="clock-container">
                     <span id="clock-time">00:00:00</span>
                     <span id="clock-date">Loading Date...</span>
+                </div>
+
+                <div id="bot-panel">
+                    <div class="bot-header"><i class="fa fa-robot"></i> MONTE Intelligence</div>
+                    <div id="bot-message">Monitoring city transit...</div>
                 </div>
 
                 <div class="theme-container">
@@ -167,7 +178,14 @@
         var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
         var terminalData = { features: [] };
         var todaLayer = L.layerGroup(); 
-        var clickCount = 0; // TRACKS MAP CLICKS
+        var clickCount = 0;
+
+        // Bot Knowledge: Specific SJDM Zones
+        const sjdmZones = [
+            { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
+            { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "High congestion at Muzon intersection. Expect slow movement." },
+            { name: "CSanSci / School Zone", coords: [14.8214, 121.0550], radius: 0.3, msg: "Student activity zone detected. Drive carefully." }
+        ];
 
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
         var map = L.map('map', { zoomControl: false, layers: [osm] }).setView(sjdm, 13);
@@ -192,7 +210,7 @@
         }
 
         function resetMarkers() {
-            clickCount = 0; // RESET COUNTER
+            clickCount = 0;
             if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
             if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
             if (routingControl) { map.removeControl(routingControl); routingControl = null; }
@@ -203,17 +221,31 @@
             document.getElementById('time-display').innerText = "--:--";
             document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
             document.getElementById('traffic-desc').innerText = "Waiting for input...";
-            document.querySelectorAll('.leaflet-control-geocoder-form input').forEach(el => el.value = "");
+            document.getElementById('bot-message').innerText = "Monitoring city transit...";
         }
 
         function updateTrafficStatus() {
             const hour = new Date().getHours();
             let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
+            let botText = "Roads look clear for SJDM today. Enjoy your trip!";
 
+            // Check Time-based traffic
             if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
                 status = { label: "Heavy Rush Hour", desc: "Expect significant delays", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
+                botText = "🛑 <b>Rush Hour Alert:</b> Traffic is heavy on main arteries. Plan for delays.";
             } else if (hour >= 10 && hour <= 15) {
                 status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
+                botText = "Traffic is moderate. Transit times are within normal range.";
+            }
+
+            // Check Zone-based traffic (if destination exists)
+            if (destMarker) {
+                const dl = destMarker.getLatLng();
+                sjdmZones.forEach(zone => {
+                    if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
+                        botText = `📍 <b>${zone.name}:</b> ${zone.msg}`;
+                    }
+                });
             }
 
             const card = document.getElementById('traffic-card');
@@ -221,6 +253,7 @@
             document.getElementById('traffic-icon').className = "fa " + status.icon;
             document.getElementById('traffic-status').innerText = status.label;
             document.getElementById('traffic-desc').innerText = status.desc;
+            document.getElementById('bot-message').innerHTML = botText;
             
             return status.multiplier;
         }
@@ -259,13 +292,12 @@
                 if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
             }
 
-            // DIFFERENTIAL ROUTING LOGIC
             let routeProfile = 'car';
             let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
 
             if (currentVehicle === 'moto') {
-                routeProfile = 'bicycle'; // Uses bicycle profile for narrow paths
-                pathColor = '#e67e22';    // Distinct Orange for Moto
+                routeProfile = 'bicycle';
+                pathColor = '#e67e22'; 
             }
 
             const trafficMult = updateTrafficStatus();
@@ -331,7 +363,6 @@
             updateMONTE();
         }
 
-        // THREE-CLICK LOGIC
         map.on('click', e => {
             clickCount++;
             if (clickCount === 1) setupMarker(e.latlng, true);
@@ -341,6 +372,8 @@
 
         function switchMainMode(m) {
             currentMode = m;
+            document.getElementById('mode-public').className = m==='public'?'mode-btn active':'mode-btn';
+            document.getElementById('mode-private').className = m==='private'?'mode-btn active':'mode-btn';
             document.getElementById('public-selector').style.display = m==='public'?'grid':'none';
             document.getElementById('private-selector').style.display = m==='private'?'grid':'none';
             if(m === 'private' && walkingRouteControl) map.removeControl(walkingRouteControl);
@@ -379,6 +412,7 @@
             const now = new Date();
             document.getElementById('clock-time').innerText = now.toLocaleTimeString();
             document.getElementById('clock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+            updateTrafficStatus(); // Update bot and traffic every minute
         }
         setInterval(updateClock, 1000);
     </script>
