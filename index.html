@@ -94,7 +94,7 @@
                     <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
                         <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
                         <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
-                            <option value="regular">Regular (4+)</option>
+                            <option value="regular">Regular (Shared)</option>
                             <option value="special-1">Special (1p)</option>
                             <option value="special-2">Special (2p)</option>
                             <option value="special-3">Special (3p)</option>
@@ -201,31 +201,53 @@
             document.getElementById('time-display').innerText = "--:--";
             document.getElementById('traffic-status').innerText = "Analyzing Traffic...";
             document.getElementById('traffic-desc').innerText = "Waiting for input...";
+            
+            // Clear input boxes in sidebar
+            document.querySelectorAll('.leaflet-control-geocoder-form input').forEach(el => el.value = "");
         }
 
-        function findNearestToda(ll) {
-            let nearest = null, minD = Infinity;
-            terminalData.features.forEach(f => {
-                let d = getDistance(ll.lat, ll.lng, f.geometry.coordinates[1], f.geometry.coordinates[0]);
-                if (d < minD) { minD = d; nearest = f; }
-            });
-            return { terminal: nearest, distance: minD };
-        }
+        function updateTrafficStatus() {
+            const hour = new Date().getHours();
+            let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
 
-        function checkNearestTodaUI(ll) {
-            if (currentVehicle !== 'trike' || currentMode !== 'public') return;
-            const res = findNearestToda(ll);
-            if (walkingRouteControl) map.removeControl(walkingRouteControl);
-            if (res.terminal) {
-                document.getElementById('traffic-status').innerText = "Nearest: " + (res.terminal.properties.Name || "TODA");
-                document.getElementById('traffic-desc').innerText = "Walk " + (res.distance*1000).toFixed(0) + "m to terminal.";
-                walkingRouteControl = L.Routing.control({
-                    waypoints: [ll, L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0])],
-                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'foot' }),
-                    createMarker: () => null,
-                    lineOptions: { styles: [{ color: '#3498db', weight: 4, dashArray: '5, 10' }] }
-                }).addTo(map);
+            // Rush Hour: 6AM-9AM and 4PM-7PM
+            if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
+                status = { label: "Heavy Rush Hour", desc: "Expect significant delays", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
+            } else if (hour >= 10 && hour <= 15) {
+                status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
             }
+
+            const card = document.getElementById('traffic-card');
+            card.style.borderLeft = "5px solid " + status.color;
+            document.getElementById('traffic-icon').className = "fa " + status.icon;
+            document.getElementById('traffic-status').innerText = status.label;
+            document.getElementById('traffic-desc').innerText = status.desc;
+            
+            return status.multiplier;
+        }
+
+        function calculatePublicFare(dist) {
+            let total = 0;
+            const isDiscounted = (userProfile !== 'regular');
+
+            if (currentVehicle === 'jeep') {
+                total = (dist <= 4) ? 13 : 13 + (Math.ceil(dist - 4) * 1.50);
+            } else if (currentVehicle === 'bus') {
+                total = (dist <= 5) ? 15 : 15 + (Math.ceil(dist - 5) * 2.65);
+            } else if (currentVehicle === 'trike') {
+                // Base ₱12 for first 2km, then ₱5 per km
+                let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
+                const triMode = document.getElementById('trike-mode').value;
+                if (triMode === 'regular') {
+                    total = baseFare;
+                } else {
+                    const multipliers = { "special-1": 4, "special-2": 2, "special-3": 1.5 };
+                    total = baseFare * (multipliers[triMode] || 1);
+                }
+            }
+            
+            if (isDiscounted) total *= 0.8;
+            document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
         }
 
         function updateMONTE() {
@@ -239,6 +261,8 @@
                 if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
             }
 
+            const trafficMult = updateTrafficStatus();
+
             routingControl = L.Routing.control({
                 waypoints: [start, destMarker.getLatLng()],
                 router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
@@ -246,7 +270,7 @@
                 lineOptions: { styles: [{ color: currentMode === 'public' ? '#27ae60' : '#3498db', weight: 6, opacity: 0.8 }] }
             }).on('routesfound', e => {
                 let d = e.routes[0].summary.totalDistance / 1000;
-                let t = Math.round(e.routes[0].summary.totalTime / 60);
+                let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
 
                 if (currentMode === 'public') {
                     calculatePublicFare(d);
@@ -264,20 +288,28 @@
             }).addTo(map);
         }
 
-        function calculatePublicFare(dist) {
-            let total = 0;
-            if (currentVehicle === 'jeep') total = (dist <= 4) ? 13 : 13 + (dist-4)*1.5;
-            else if (currentVehicle === 'bus') total = (dist <= 5) ? 15 : 15 + (dist-5)*2.65;
-            else if (currentVehicle === 'trike') {
-                total = (dist <= 2) ? 12 : 12 + (dist-2)*5;
-                const triMode = document.getElementById('trike-mode').value;
-                if (triMode === 'special-1') total *= 4;
-                else if (triMode === 'special-2') total *= 2;
-                else if (triMode === 'special-3') total *= 1.5;
+        // Helper functions for terminal logic
+        function findNearestToda(ll) {
+            let nearest = null, minD = Infinity;
+            terminalData.features.forEach(f => {
+                let d = getDistance(ll.lat, ll.lng, f.geometry.coordinates[1], f.geometry.coordinates[0]);
+                if (d < minD) { minD = d; nearest = f; }
+            });
+            return { terminal: nearest, distance: minD };
+        }
+
+        function checkNearestTodaUI(ll) {
+            if (currentVehicle !== 'trike' || currentMode !== 'public') return;
+            const res = findNearestToda(ll);
+            if (walkingRouteControl) map.removeControl(walkingRouteControl);
+            if (res.terminal) {
+                walkingRouteControl = L.Routing.control({
+                    waypoints: [ll, L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0])],
+                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'foot' }),
+                    createMarker: () => null,
+                    lineOptions: { styles: [{ color: '#3498db', weight: 4, dashArray: '5, 10' }] }
+                }).addTo(map);
             }
-            
-            if (userProfile !== 'regular') total *= 0.8;
-            document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
         }
 
         function setupMarker(ll, isOrigin) {
