@@ -224,12 +224,7 @@
             { name: "Bulacan State University - Sarmiento", coords: [14.8150, 121.0560], radius: 0.3, msg: "High student density. Peak hours: 7 AM and 5 PM." }
         ];
 
-        const funFacts = [
-            "SJDM is the most populous city in Central Luzon.",
-            "Known as the 'Balcony of the Metropolis' due to its elevated topography.",
-            "Mount Balagbag is a popular destination for hikers and mountain bikers.",
-            "The city is home to several major resettlement projects in the Philippines."
-        ];
+        let dynamicFunFacts = ["SJDM: The Rising City."];
 
         // Initialize Map with default light tiles
         var map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
@@ -256,6 +251,24 @@
             } catch (e) { document.getElementById('bot-weather-tab').innerText = "Weather Service Offline"; }
         }
 
+        async function loadFunFacts() {
+    try {
+        // This looks for funfacts.txt in the same folder as your index.html
+        const response = await fetch('funfacts.txt');
+        if (response.ok) {
+            const text = await response.text();
+            // Split by new line and remove empty lines
+            const facts = text.split('\n').filter(line => line.trim() !== "");
+            if (facts.length > 0) {
+                dynamicFunFacts = facts;
+                console.log("MONTE: Fun facts loaded successfully.");
+            }
+        }
+    } catch (error) {
+        console.error("MONTE: Error fetching facts:", error);
+    }
+}
+
         function updateTrafficStatus() {
             const hour = new Date().getHours();
             let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
@@ -279,11 +292,13 @@
                 sjdmZones.forEach(zone => {
                     if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
                         botText = `Attention: You are heading toward the <b>${zone.name}</b>. ${zone.msg}`;
-                    }
-                });
-                document.getElementById('bot-fact-large').innerHTML = "<b>City Fact:</b> " + funFacts[Math.floor(Math.random() * funFacts.length)];
             }
+    });
 
+    // UPDATED LINE BELOW:
+    const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
+    document.getElementById('bot-fact-large').innerHTML = "<b>City Fact:</b> " + randomFact;
+}
             document.getElementById('traffic-status').innerText = status.label;
             document.getElementById('traffic-desc').innerText = status.desc;
             document.getElementById('bot-message-large').innerHTML = botText;
