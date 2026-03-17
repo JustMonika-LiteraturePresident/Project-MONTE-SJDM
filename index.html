@@ -328,12 +328,16 @@
                 let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
                 const triMode = document.getElementById('trike-mode').value;
                 const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
+                
                 total = baseFare * (multipliers[triMode] || 1);
-            }
-            
-            if (isDiscounted) total *= 0.8;
-            document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
+
+                if (isDiscounted && triMode === 'regular') {
+                    total *= 0.8;
         }
+    }
+    
+    document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
+}
 
         function updateMONTE() {
             if (!originMarker || !destMarker) return;
