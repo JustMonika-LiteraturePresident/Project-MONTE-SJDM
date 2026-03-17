@@ -254,7 +254,7 @@
         async function loadFunFacts() {
     try {
         // This looks for funfacts.txt in the same folder as your index.html
-        const response = await fetch('funfacts.txt');
+        const response = await fetch('funfact.txt');
         if (response.ok) {
             const text = await response.text();
             // Split by new line and remove empty lines
