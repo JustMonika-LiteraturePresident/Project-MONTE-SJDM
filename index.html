@@ -288,24 +288,27 @@
             }
 
             if (destMarker) {
-                const dl = destMarker.getLatLng();
-                sjdmZones.forEach(zone => {
-                    if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
-                        botText = `Attention: You are heading toward the <b>${zone.name}</b>. ${zone.msg}`;
+        const dl = destMarker.getLatLng();
+        sjdmZones.forEach(zone => {
+            if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
+                botText = `Attention: You are heading toward the <b>${zone.name}</b>. ${zone.msg}`;
             }
-    });
+        });
+    }
 
-    // UPDATED LINE BELOW:
-    const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
-    document.getElementById('bot-fact-large').innerHTML = "<b>City Fact:</b> " + randomFact;
+    // ROTATION LOGIC: Only change the fact every 15 seconds
+    if (seconds % 15 === 0 || document.getElementById('bot-fact-large').innerText === "Analyzing city patterns...") {
+        const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
+        document.getElementById('bot-fact-large').innerHTML = "<b>City Fact:</b> " + randomFact;
+    }
+
+    document.getElementById('traffic-status').innerText = status.label;
+    document.getElementById('traffic-desc').innerText = status.desc;
+    document.getElementById('bot-message-large').innerHTML = botText;
+    document.getElementById('bot-traffic-analysis').innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
+    
+    return status.multiplier;
 }
-            document.getElementById('traffic-status').innerText = status.label;
-            document.getElementById('traffic-desc').innerText = status.desc;
-            document.getElementById('bot-message-large').innerHTML = botText;
-            document.getElementById('bot-traffic-analysis').innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
-            
-            return status.multiplier;
-        }
 
         function calculatePublicFare(dist) {
             let total = 0;
