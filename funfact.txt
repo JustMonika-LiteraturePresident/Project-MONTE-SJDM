@@ -1,1 +1,30 @@
-
+SJDM: The Rising City.
+SJDM is the most populous city in Central Luzon.
+CSJDM is known as the 'Balcony of the Metropolis' due to its elevated topography.
+Mount Balagbag is a popular destination for hikers and mountain bikers.
+The city is home to several major resettlement projects in the Philippines.
+San Jose del Monte officially became a city on September 10, 2000, making it the first city in Bulacan.
+Originally composed of only six barangays, CSJDM now has 62 barangays, divided into two districts.
+The La Mesa Eco Park, though often associated with Quezon City, the CSJDM covers the 33 hectares of lush forest and recreational space.
+Our Lady of Lourdes Grotto Shrine is famous pilgrimage site, especially during Holy Week, attracting thousands of devotees.
+The town was established on March 2, 1752, making it historically significant in Bulacan’s development.
+The city is named after Saint Joseph, the patron saint of workers and families.
+CSJDM is only 42 kilometers from Manila, making it a gateway city between Metro Manila and Bulacan.
+The city’s motto is “Arya San Joseño!”, a rallying cry for progress and unity.
+CSJDM is sometimes called the “Gateway to Bulacan” because of its proximity to Metro Manila.
+It hosts SM City San Jose del Monte, one of the largest malls in the area, serving as a hub for shopping and leisure.
+The city is known for its People’s Park & Sports Complex, a venue for community events and recreation.
+CSJDM will be the northern terminal of the MRT-7 line, connecting the city directly to Quezon City and North Avenue in Metro Manila. 
+The city celebrates Tanglawan Festival. “Tanglawan” means torch, symbolizing enlightenment and guidance.
+Saint Joseph Worker Parish Work began in 1842 and was completed in 1854, giving the church its classic 19th-century architecture.
+The Obrero Festival to honor the working class of the society. San Jose Ang Manggagawa, San Isidro Ang Magsasaka at San Pedro Ang Mangingisda.
+Quirino Highway is the primary link between SJDM and Northern Quezon City.
+Muzon is considered the central transport hub of the city, connecting District 1 and 2.
+The Indakan Festival showcases street dancing and youth creativity.
+The Sapang Palay Resettlement Project made the city a major relocation site in the 1960s.
+Project MONTE was developed to bridge the gap in SJDM's paratransit data mapping.
+MONTE stands for Multimodal Optimization and Navigation for Transport Efficiency.
+The project utilizes QGIS and OpenStreetMap to digitize previously unmapped jeepney routes.
+Developed by CSanSci students, MONTE aims to improve the commuting experience in the city.
+The app features real-time traffic analysis specifically calibrated for the city’s peak hours.
+MONTE’s routing engine is designed to prioritize local TODA terminals for tricycle commuters.
