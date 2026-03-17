@@ -315,11 +315,10 @@
 }
 
         function calculatePublicFare(dist) {
-            let total = 0;
-            const isDiscounted = (userProfile !== 'regular');
-            const dRounded = Math.ceil(dist);
-
-            document.getElementById('fare-display').style.color = "#27ae60";
+    let total = 0;
+    const isDiscounted = (userProfile !== 'regular');
+    
+    document.getElementById('fare-display').style.color = "#27ae60";
 
     if (currentVehicle === 'jeep') {
         const jeepType = document.getElementById('jeep-type').value;
@@ -333,45 +332,40 @@
             perKm = 2.40;
         }
 
-        // Calculation: Base fare for first 4km + rate for every km after
         if (dist <= 4) {
             total = baseFare;
         } else {
             total = baseFare + (Math.ceil(dist - 4) * perKm);
         }
 
-        // Apply 20% discount for Students/Seniors
         if (isDiscounted) {
             total *= 0.8;
         }
-    }
-            else if (currentVehicle === 'trike') {
-                let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
-                const triMode = document.getElementById('trike-mode').value;
-                const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
-                
-                total = baseFare * (multipliers[triMode] || 1);
+    } 
+    else if (currentVehicle === 'trike') {
+        let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
+        const triMode = document.getElementById('trike-mode').value;
+        const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
+        
+        total = baseFare * (multipliers[triMode] || 1);
 
-                if (isDiscounted && triMode === 'regular') {
-                    total *= 0.8;
+        if (isDiscounted && triMode === 'regular') {
+            total *= 0.8;
         }
+    } 
+    else if (currentVehicle === 'bus' || currentVehicle === 'uv') {
+        document.getElementById('fare-display').innerText = "Data Mapping...";
+        document.getElementById('fare-display').style.color = "#7f8c8d";
+        return;
+    } 
+    else if (currentVehicle === 'mrt') {
+        document.getElementById('fare-display').innerText = "Coming soon!";
+        document.getElementById('fare-display').style.color = "#FFD700";
+        return;
     }
-    
+
     document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
 }
-
-            
-            else if (currentVehicle === 'bus' || currentVehicle === 'uv') {
-                document.getElementById('fare-display').innerText = "Data Mapping...";
-                document.getElementById('fare-display').style.color = "#7f8c8d";
-                return;
-            }
-            else if (currentVehicle === 'mrt') {
-                document.getElementById('fare-display').innerText = "Coming soon in your areas!";
-                document.getElementById('fare-display').style.color = "#FFD700";
-                return;
-            }
-
         function updateMONTE() {
             if (!originMarker || !destMarker) return;
             if (routingControl) map.removeControl(routingControl);
