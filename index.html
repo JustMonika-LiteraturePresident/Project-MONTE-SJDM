@@ -270,7 +270,9 @@
 }
 
         function updateTrafficStatus() {
+            const now = new Date();
             const hour = new Date().getHours();
+            const seconds = now.getSeconds();
             let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
             let botText = "Roads look clear for San Jose del Monte right now. Perfect time for a trip!";
 
@@ -297,11 +299,13 @@
     }
 
     // ROTATION LOGIC: Only change the fact every 15 seconds
-    if (seconds % 15 === 0 || document.getElementById('bot-fact-large').innerText === "Analyzing city patterns...") {
+    const factElement = document.getElementById('bot-fact-large');
+    if (seconds % 15 === 0 || factElement.innerText.includes("Analyzing")) {
         const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
-        document.getElementById('bot-fact-large').innerHTML = "<b>City Fact:</b> " + randomFact;
+        factElement.innerHTML = "<b>City Fact:</b> " + randomFact;
     }
 
+    // Update UI elements
     document.getElementById('traffic-status').innerText = status.label;
     document.getElementById('traffic-desc').innerText = status.desc;
     document.getElementById('bot-message-large').innerHTML = botText;
@@ -313,21 +317,35 @@
         function calculatePublicFare(dist) {
             let total = 0;
             const isDiscounted = (userProfile !== 'regular');
-            
-            if (currentVehicle === 'jeep' || currentVehicle === 'bus' || currentVehicle === 'uv') {
-                document.getElementById('fare-display').innerText = "Data Mapping...";
-                document.getElementById('fare-display').style.color = "#7f8c8d";
-                return;
-            }
-             if (currentVehicle === 'lrt') {
-                document.getElementById('fare-display').innerText = "Coming soon in your areas!";
-                document.getElementById('fare-display').style.color = "#FFD700";
-                return;
-            }
+            const dRounded = Math.ceil(dist);
 
             document.getElementById('fare-display').style.color = "#27ae60";
 
-            if (currentVehicle === 'trike') {
+    if (currentVehicle === 'jeep') {
+        const jeepType = document.getElementById('jeep-type').value;
+        let baseFare, perKm;
+
+        if (jeepType === 'traditional') {
+            baseFare = 14.00;
+            perKm = 2.00;
+        } else { // modern
+            baseFare = 17.00;
+            perKm = 2.40;
+        }
+
+        // Calculation: Base fare for first 4km + rate for every km after
+        if (dist <= 4) {
+            total = baseFare;
+        } else {
+            total = baseFare + (Math.ceil(dist - 4) * perKm);
+        }
+
+        // Apply 20% discount for Students/Seniors
+        if (isDiscounted) {
+            total *= 0.8;
+        }
+    }
+            else if (currentVehicle === 'trike') {
                 let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
                 const triMode = document.getElementById('trike-mode').value;
                 const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
@@ -341,6 +359,18 @@
     
     document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
 }
+
+            
+            else if (currentVehicle === 'bus' || currentVehicle === 'uv') {
+                document.getElementById('fare-display').innerText = "Data Mapping...";
+                document.getElementById('fare-display').style.color = "#7f8c8d";
+                return;
+            }
+            else if (currentVehicle === 'mrt') {
+                document.getElementById('fare-display').innerText = "Coming soon in your areas!";
+                document.getElementById('fare-display').style.color = "#FFD700";
+                return;
+            }
 
         function updateMONTE() {
             if (!originMarker || !destMarker) return;
