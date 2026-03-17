@@ -105,7 +105,7 @@
                         </select>
                     </div>
                     <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
-                        <img src="tri.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
+                        <img src="Tricycle.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
                         <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
                             <option value="regular">Regular (Shared)</option>
                             <option value="special-1">Special (1p)</option>
@@ -298,9 +298,9 @@
         });
     }
 
-    // ROTATION LOGIC: Only change the fact every 15 seconds
+    // ROTATION LOGIC: Only change the fact every 10 seconds
     const factElement = document.getElementById('bot-fact-large');
-    if (seconds % 15 === 0 || factElement.innerText.includes("Analyzing")) {
+    if (seconds % 10 === 0 || factElement.innerText.includes("Analyzing")) {
         const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
         factElement.innerHTML = "<b>City Fact:</b> " + randomFact;
     }
