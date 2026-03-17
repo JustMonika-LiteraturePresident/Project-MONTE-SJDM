@@ -363,6 +363,7 @@
         document.getElementById('fare-display').style.color = "#FFD700";
         return;
     }
+   total = Math.ceil(total);
 
     document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
 }
