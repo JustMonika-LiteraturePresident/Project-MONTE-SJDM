@@ -300,20 +300,38 @@
     }
 }
 
-// --- 1. User Identity & Location ---
+// --- 1. USER IDENTITY & SAVED DATA ---
 function saveUserName(name) {
     if (!name) return;
     localStorage.setItem('monte_user_name', name);
     const botMsg = document.getElementById('bot-message-large');
-    // This updates the Bot tab greeting in real-time
     if (botMsg) botMsg.innerHTML = `Kamusta, <b>${name}</b>! Analyzing the best routes for you.`;
 }
 
-// --- 2. Unified Profile Syncing (FIXED) ---
+function saveHome() {
+    if (originMarker) {
+        localStorage.setItem('monte_home_coords', JSON.stringify(originMarker.getLatLng()));
+        alert("Home location saved locally!");
+    } else {
+        alert("Please drop an Origin marker on the map first.");
+    }
+}
+
+function useHome() {
+    const saved = localStorage.getItem('monte_home_coords');
+    if (saved) {
+        const pos = JSON.parse(saved);
+        setupMarker(L.latLng(pos.lat, pos.lng), true); 
+        map.flyTo(pos, 15);
+    } else {
+        alert("No home location saved yet.");
+    }
+}
+
+// --- 2. UNIFIED PROFILE SYNCING (SAFE VERSION) ---
 function setProfile(p, el) { 
     userProfile = p; 
 
-    // Safety: Find all buttons by class instead of relying on 'el'
     document.querySelectorAll('.prof-btn').forEach(btn => {
         if (btn) {
             btn.classList.remove('active');
@@ -324,17 +342,15 @@ function setProfile(p, el) {
     });
 
     localStorage.setItem('monte_user_profile', p);
-    // Only call this if your route calculation function exists
     if (typeof updateMONTE === "function") updateMONTE(); 
 }
 
-// --- 3. Enhanced Theme Persistence (FIXED) ---
+// --- 3. ENHANCED THEME PERSISTENCE (SAFE VERSION) ---
 function setTheme(mode, element) {
     document.querySelectorAll('.theme-btn').forEach(btn => {
         if (btn) btn.classList.remove('active');
     });
 
-    // Check if we were passed an element, if not, find it by ID
     const targetBtn = element || document.getElementById('t-' + mode);
     if (targetBtn) targetBtn.classList.add('active');
 
@@ -344,30 +360,32 @@ function setTheme(mode, element) {
     if (targetTheme === 'dark') {
         document.body.classList.add('dark-theme');
         if (map && map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
-        if (darkTiles) darkTiles.addTo(map);
+        if (darkTiles && map) darkTiles.addTo(map);
     } else {
         document.body.classList.remove('dark-theme');
         if (map && map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
-        if (lightTiles) lightTiles.addTo(map);
+        if (lightTiles && map) lightTiles.addTo(map);
     }
 
     localStorage.setItem('monte_theme_pref', mode);
 }
 
-       function initializeUserSettings() {
-    // 1. Restore Name
+// --- 4. INITIALIZATION ---
+function initializeUserSettings() {
+    // Restore Name
     const name = localStorage.getItem('monte_user_name');
     if (name) {
-        document.getElementById('user-name-input').value = name;
+        const input = document.getElementById('user-name-input');
+        if (input) input.value = name;
         const botMsg = document.getElementById('bot-message-large');
         if (botMsg) botMsg.innerHTML = `Welcome back, <b>${name}</b>!`;
     }
 
-    // 2. Restore Theme
+    // Restore Theme
     const savedTheme = localStorage.getItem('monte_theme_pref') || 'auto';
-    setTheme(savedTheme, document.getElementById('t-' + savedTheme));
+    setTheme(savedTheme);
 
-    // 3. Restore Profile (Syncs both tabs)
+    // Restore Profile
     const savedProfile = localStorage.getItem('monte_user_profile') || 'regular';
     setProfile(savedProfile);
 }
