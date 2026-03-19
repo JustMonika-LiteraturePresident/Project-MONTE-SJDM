@@ -392,7 +392,7 @@ function setTheme(mode, element) {
 }
 
 // Call this at the end of your Leaflet initialization
-window.addEventListener('DOMContentLoaded', initializeMONTE);
+window.addEventListener('DOMContentLoaded', initializeUserSettings);
         
         function updateTrafficStatus() {
             const now = new Date();
@@ -672,7 +672,6 @@ window.addEventListener('DOMContentLoaded', initializeMONTE);
         setTheme('auto'); // Set initial theme
         setTheme('auto');
         loadFunFacts();
-        window.onload = function() {
     initializeUserSettings();
     </script>
 </body>
