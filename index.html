@@ -332,9 +332,16 @@ function useHome() {
 function setProfile(p, el) { 
     userProfile = p; 
 
-    document.querySelectorAll('.prof-btn').forEach(btn => {
+    // Find all buttons
+    const buttons = document.querySelectorAll('.prof-btn');
+
+    // SAFETY CHECK: If no buttons exist yet, stop here and try again later
+    if (buttons.length === 0) return;
+
+    buttons.forEach(btn => {
         if (btn) {
             btn.classList.remove('active');
+            // Only add the active class if the text matches
             if (btn.innerText.toLowerCase().includes(p.toLowerCase())) {
                 btn.classList.add('active');
             }
