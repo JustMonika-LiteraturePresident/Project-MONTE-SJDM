@@ -300,74 +300,55 @@
     }
 }
 
-       // --- 1. User Identity & Location ---
+// --- 1. User Identity & Location ---
 function saveUserName(name) {
+    if (!name) return;
     localStorage.setItem('monte_user_name', name);
     const botMsg = document.getElementById('bot-message-large');
+    // This updates the Bot tab greeting in real-time
     if (botMsg) botMsg.innerHTML = `Kamusta, <b>${name}</b>! Analyzing the best routes for you.`;
 }
 
-function saveHome() {
-    if (originMarker) {
-        localStorage.setItem('monte_home_coords', JSON.stringify(originMarker.getLatLng()));
-        alert("Home location saved locally!");
-    } else {
-        alert("Please drop an Origin marker on the map first.");
-    }
-}
-
-function useHome() {
-    const saved = localStorage.getItem('monte_home_coords');
-    if (saved) {
-        const pos = JSON.parse(saved);
-        setupMarker(L.latLng(pos.lat, pos.lng), true); // true sets it as Origin
-        map.flyTo(pos, 15);
-    } else {
-        alert("No home location saved yet.");
-    }
-}
-
-// --- 2. Unified Profile Syncing ---
+// --- 2. Unified Profile Syncing (FIXED) ---
 function setProfile(p, el) { 
     userProfile = p; 
 
-    // Sync all buttons with class 'prof-btn' across ALL tabs (Home & Profile)
+    // Safety: Find all buttons by class instead of relying on 'el'
     document.querySelectorAll('.prof-btn').forEach(btn => {
-        btn.classList.remove('active');
-        // Match buttons based on their text content
-        if (btn.innerText.toLowerCase().includes(p.toLowerCase())) {
-            btn.classList.add('active');
+        if (btn) {
+            btn.classList.remove('active');
+            if (btn.innerText.toLowerCase().includes(p.toLowerCase())) {
+                btn.classList.add('active');
+            }
         }
     });
 
     localStorage.setItem('monte_user_profile', p);
-    updateMONTE(); // Trigger fare recalculation
+    // Only call this if your route calculation function exists
+    if (typeof updateMONTE === "function") updateMONTE(); 
 }
 
-// --- 3. Enhanced Theme Persistence ---
+// --- 3. Enhanced Theme Persistence (FIXED) ---
 function setTheme(mode, element) {
-    // 1. Update UI Buttons
-    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-    if (element) {
-        element.classList.add('active');
-    } else {
-        // Fallback for script-based calls
-        const targetBtn = document.getElementById('t-' + mode);
-        if (targetBtn) targetBtn.classList.add('active');
-    }
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        if (btn) btn.classList.remove('active');
+    });
 
-    // 2. Theme Logic
+    // Check if we were passed an element, if not, find it by ID
+    const targetBtn = element || document.getElementById('t-' + mode);
+    if (targetBtn) targetBtn.classList.add('active');
+
     const hour = new Date().getHours();
     let targetTheme = mode === 'auto' ? (hour >= 18 || hour < 6 ? 'dark' : 'light') : mode;
 
     if (targetTheme === 'dark') {
         document.body.classList.add('dark-theme');
-        if (map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
-        darkTiles.addTo(map);
+        if (map && map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
+        if (darkTiles) darkTiles.addTo(map);
     } else {
         document.body.classList.remove('dark-theme');
-        if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
-        lightTiles.addTo(map);
+        if (map && map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
+        if (lightTiles) lightTiles.addTo(map);
     }
 
     localStorage.setItem('monte_theme_pref', mode);
@@ -390,9 +371,6 @@ function setTheme(mode, element) {
     const savedProfile = localStorage.getItem('monte_user_profile') || 'regular';
     setProfile(savedProfile);
 }
-
-// Call this at the end of your Leaflet initialization
-window.addEventListener('DOMContentLoaded', initializeUserSettings);
         
         function updateTrafficStatus() {
             const now = new Date();
@@ -672,7 +650,10 @@ window.addEventListener('DOMContentLoaded', initializeUserSettings);
         setTheme('auto'); // Set initial theme
         setTheme('auto');
         loadFunFacts();
+    document.addEventListener('DOMContentLoaded', () => {
     initializeUserSettings();
+    setInterval(updateClock, 1000);
+});
     </script>
 </body>
 </html>
