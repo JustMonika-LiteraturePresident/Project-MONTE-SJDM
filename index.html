@@ -60,6 +60,7 @@
                 <li><a href="#bot-tab" role="tab"><i class="fa fa-robot"></i></a></li>
                 <li><a href="#planner" role="tab"><i class="fa fa-route"></i></a></li>
                 <li><a href="#settings" role="tab"><i class="fa fa-rotate"></i></a></li>
+                <li><a href="#profile" role="tab"><i class="fa fa-user-circle"></i></a></li>
             </ul>
         </div>
 
@@ -70,12 +71,6 @@
                 <div id="clock-container">
                     <span id="clock-time">00:00:00</span>
                     <span id="clock-date">Loading Date...</span>
-                </div>
-
-                <div class="theme-container">
-                    <button id="t-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
-                    <button id="t-dark" class="theme-btn" onclick="setTheme('dark', this)">Dark</button>
-                    <button id="t-auto" class="theme-btn active" onclick="setTheme('auto', this)">Auto</button>
                 </div>
 
                 <div class="profile-container">
@@ -174,6 +169,42 @@
                 </div>
             </div>
 
+            <div class="leaflet-sidebar-pane" id="profile">
+    <h1 class="leaflet-sidebar-header">User Profile<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+    <div style="padding: 15px;">
+        <div class="bot-data-card" style="text-align: center; margin-bottom: 20px;">
+            <i class="fa fa-circle-user" style="font-size: 3em; color: #3498db; margin-bottom: 10px;"></i>
+            <input type="text" id="user-name-input" placeholder="Enter Your Name" 
+                   style="width: 90%; border: none; border-bottom: 2px solid #3498db; text-align: center; font-size: 1.2em; font-weight: bold; background: transparent; color: var(--text-main);"
+                   onchange="saveUserName(this.value)">
+        </div>
+
+        <h3 style="font-size: 0.8em; text-transform: uppercase; color: #7f8c8d;">App Theme</h3>
+        <div class="theme-container" style="margin-bottom: 20px;">
+            <button id="t-light" class="theme-btn" onclick="setTheme('light', this)">Light</button>
+            <button id="t-dark" class="theme-btn" onclick="setTheme('dark', this)">Dark</button>
+            <button id="t-auto" class="theme-btn active" onclick="setTheme('auto', this)">Auto</button>
+        </div>
+
+        <h3 style="font-size: 0.8em; text-transform: uppercase; color: #7f8c8d;">Saved Passenger Type</h3>
+        <div class="profile-container" style="margin-bottom: 20px;">
+            <button class="prof-btn" onclick="setProfile('regular', this)">Regular</button>
+            <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
+            <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
+        </div>
+
+        <h3 style="font-size: 0.8em; text-transform: uppercase; color: #7f8c8d;">Saved Locations</h3>
+        <div class="bot-data-card">
+            <button onclick="saveHome()" class="mode-btn" style="width: 100%; margin-bottom: 8px; background: #3498db; color: white;">
+                <i class="fa fa-house"></i> Set Origin as Home
+            </button>
+            <button onclick="useHome()" class="mode-btn" style="width: 100%; background: #2ecc71; color: white;">
+                <i class="fa fa-location-arrow"></i> Navigate to Home
+            </button>
+        </div>
+    </div>
+</div>
+
             <div class="leaflet-sidebar-pane" id="settings">
                 <h1 class="leaflet-sidebar-header">System Controls<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
                 <div style="padding: 20px 10px;">
@@ -269,6 +300,65 @@
     }
 }
 
+        // 1. Name Persistence
+function saveUserName(name) {
+    localStorage.setItem('monte_user_name', name);
+    const greet = document.getElementById('bot-message-large');
+    if (greet) greet.innerHTML = `Welcome, <b>${name}</b>! Let's find your route.`;
+}
+
+// 2. Location Persistence
+function saveHome() {
+    if (originMarker) {
+        localStorage.setItem('monte_home_coords', JSON.stringify(originMarker.getLatLng()));
+        alert("Home saved!");
+    } else {
+        alert("Please set an Origin on the map first.");
+    }
+}
+
+function useHome() {
+    const saved = localStorage.getItem('monte_home_coords');
+    if (saved) {
+        const pos = JSON.parse(saved);
+        setupMarker(L.latLng(pos.lat, pos.lng), true); // true = Origin
+        map.flyTo(pos, 15);
+    }
+}
+
+// 3. Tab Syncing for Profile/Fare Type
+function setProfile(type, element) {
+    userProfile = type; // Global fare variable
+
+    // Sync all buttons with class 'prof-btn' across ALL tabs
+    document.querySelectorAll('.prof-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.toLowerCase().includes(type.toLowerCase())) {
+            btn.classList.add('active');
+        }
+    });
+
+    localStorage.setItem('monte_user_profile', type);
+    if (typeof updateMONTE === "function") updateMONTE();
+}
+
+        function initializeMONTE() {
+    // Restore Name
+    const name = localStorage.getItem('monte_user_name');
+    if (name) document.getElementById('user-name-input').value = name;
+
+    // Restore Theme (only in Profile tab)
+    const theme = localStorage.getItem('monte_theme_pref') || 'auto';
+    setTheme(theme, document.getElementById('t-' + theme));
+
+    // Restore Profile (Syncs both Home and Profile buttons)
+    const profile = localStorage.getItem('monte_user_profile') || 'regular';
+    setProfile(profile);
+}
+
+// Call this at the end of your Leaflet initialization
+window.addEventListener('DOMContentLoaded', initializeMONTE);
+        
         function updateTrafficStatus() {
             const now = new Date();
             const hour = new Date().getHours();
