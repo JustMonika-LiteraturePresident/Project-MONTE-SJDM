@@ -300,20 +300,19 @@
     }
 }
 
-        // 1. Name Persistence
+       // --- 1. User Identity & Location ---
 function saveUserName(name) {
     localStorage.setItem('monte_user_name', name);
-    const greet = document.getElementById('bot-message-large');
-    if (greet) greet.innerHTML = `Welcome, <b>${name}</b>! Let's find your route.`;
+    const botMsg = document.getElementById('bot-message-large');
+    if (botMsg) botMsg.innerHTML = `Kamusta, <b>${name}</b>! Analyzing the best routes for you.`;
 }
 
-// 2. Location Persistence
 function saveHome() {
     if (originMarker) {
         localStorage.setItem('monte_home_coords', JSON.stringify(originMarker.getLatLng()));
-        alert("Home saved!");
+        alert("Home location saved locally!");
     } else {
-        alert("Please set an Origin on the map first.");
+        alert("Please drop an Origin marker on the map first.");
     }
 }
 
@@ -321,39 +320,75 @@ function useHome() {
     const saved = localStorage.getItem('monte_home_coords');
     if (saved) {
         const pos = JSON.parse(saved);
-        setupMarker(L.latLng(pos.lat, pos.lng), true); // true = Origin
+        setupMarker(L.latLng(pos.lat, pos.lng), true); // true sets it as Origin
         map.flyTo(pos, 15);
+    } else {
+        alert("No home location saved yet.");
     }
 }
 
-// 3. Tab Syncing for Profile/Fare Type
-function setProfile(type, element) {
-    userProfile = type; // Global fare variable
+// --- 2. Unified Profile Syncing ---
+function setProfile(p, el) { 
+    userProfile = p; 
 
-    // Sync all buttons with class 'prof-btn' across ALL tabs
+    // Sync all buttons with class 'prof-btn' across ALL tabs (Home & Profile)
     document.querySelectorAll('.prof-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.innerText.toLowerCase().includes(type.toLowerCase())) {
+        // Match buttons based on their text content
+        if (btn.innerText.toLowerCase().includes(p.toLowerCase())) {
             btn.classList.add('active');
         }
     });
 
-    localStorage.setItem('monte_user_profile', type);
-    if (typeof updateMONTE === "function") updateMONTE();
+    localStorage.setItem('monte_user_profile', p);
+    updateMONTE(); // Trigger fare recalculation
 }
 
-        function initializeMONTE() {
-    // Restore Name
+// --- 3. Enhanced Theme Persistence ---
+function setTheme(mode, element) {
+    // 1. Update UI Buttons
+    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+    if (element) {
+        element.classList.add('active');
+    } else {
+        // Fallback for script-based calls
+        const targetBtn = document.getElementById('t-' + mode);
+        if (targetBtn) targetBtn.classList.add('active');
+    }
+
+    // 2. Theme Logic
+    const hour = new Date().getHours();
+    let targetTheme = mode === 'auto' ? (hour >= 18 || hour < 6 ? 'dark' : 'light') : mode;
+
+    if (targetTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        if (map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
+        darkTiles.addTo(map);
+    } else {
+        document.body.classList.remove('dark-theme');
+        if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
+        lightTiles.addTo(map);
+    }
+
+    localStorage.setItem('monte_theme_pref', mode);
+}
+
+       function initializeUserSettings() {
+    // 1. Restore Name
     const name = localStorage.getItem('monte_user_name');
-    if (name) document.getElementById('user-name-input').value = name;
+    if (name) {
+        document.getElementById('user-name-input').value = name;
+        const botMsg = document.getElementById('bot-message-large');
+        if (botMsg) botMsg.innerHTML = `Welcome back, <b>${name}</b>!`;
+    }
 
-    // Restore Theme (only in Profile tab)
-    const theme = localStorage.getItem('monte_theme_pref') || 'auto';
-    setTheme(theme, document.getElementById('t-' + theme));
+    // 2. Restore Theme
+    const savedTheme = localStorage.getItem('monte_theme_pref') || 'auto';
+    setTheme(savedTheme, document.getElementById('t-' + savedTheme));
 
-    // Restore Profile (Syncs both Home and Profile buttons)
-    const profile = localStorage.getItem('monte_user_profile') || 'regular';
-    setProfile(profile);
+    // 3. Restore Profile (Syncs both tabs)
+    const savedProfile = localStorage.getItem('monte_user_profile') || 'regular';
+    setProfile(savedProfile);
 }
 
 // Call this at the end of your Leaflet initialization
