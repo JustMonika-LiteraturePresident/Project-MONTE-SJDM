@@ -633,14 +633,44 @@ function initializeUserSettings() {
             updateTrafficStatus();
         }
         
-        setInterval(updateClock, 1000);
-        fetchWeather();
-        setTheme('auto'); // Set initial theme
-        setTheme('auto');
-        loadFunFacts();
-    document.addEventListener('DOMContentLoaded', () => {
+        // --- 5. SYSTEM CLOCK & TICKER ---
+function updateClock() {
+    const now = new Date();
+    const timeEl = document.getElementById('clock-time');
+    const dateEl = document.getElementById('clock-date');
+
+    if (timeEl) timeEl.innerText = now.toLocaleTimeString();
+    if (dateEl) dateEl.innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+    
+    // Safety check: Only auto-update theme if map is actually ready
+    if (map) {
+        const activeBtn = document.querySelector('.theme-btn.active');
+        if (activeBtn && activeBtn.id === 't-auto') {
+            setTheme('auto');
+        }
+    }
+    
+    updateTrafficStatus();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initialize the UI and restore saved user data
     initializeUserSettings();
+    
+    // 2. Start external services
+    fetchWeather();
+    loadFunFacts();
+    
+    // 3. Start the background intervals
     setInterval(updateClock, 1000);
+
+    // 4. Setup Geocoders
+    var gO = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
+    document.getElementById('origin-box').appendChild(gO.getContainer());
+    var gD = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
+    document.getElementById('dest-box').appendChild(gD.getContainer());
+
+    console.log("MONTE: All systems initialized and ready.");
 });
     </script>
 </body>
