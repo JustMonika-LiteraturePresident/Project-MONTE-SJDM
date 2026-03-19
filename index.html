@@ -612,43 +612,6 @@ function initializeUserSettings() {
             updateMONTE();
         }
 
-        function setProfile(p, el) { 
-            userProfile = p; 
-            document.querySelectorAll('.prof-btn').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
-            updateMONTE(); 
-        }
-
-        // --- ENHANCED THEME LOGIC ---
-        function setTheme(mode, element) {
-            // Update UI Button Classes
-            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-            if (element) {
-                element.classList.add('active');
-            } else {
-                document.getElementById('t-' + mode).classList.add('active');
-            }
-
-            const hour = new Date().getHours();
-            let targetTheme = mode;
-
-            // Handle Auto Logic (Dark from 6PM to 6AM)
-            if (mode === 'auto') {
-                targetTheme = (hour >= 18 || hour < 6) ? 'dark' : 'light';
-            }
-
-            // Apply CSS and Map Tile Changes
-            if (targetTheme === 'dark') {
-                document.body.classList.add('dark-theme');
-                if (map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
-                darkTiles.addTo(map);
-            } else {
-                document.body.classList.remove('dark-theme');
-                if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
-                lightTiles.addTo(map);
-            }
-        }
-
         function goHome() { map.flyTo(sjdm, 13); }
 
         var gO = L.Control.geocoder({ defaultMarkGeocode: false }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
