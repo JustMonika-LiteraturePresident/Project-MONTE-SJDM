@@ -140,6 +140,9 @@
             <div class="leaflet-sidebar-pane" id="bot-tab">
                 <h1 class="leaflet-sidebar-header">MONTE Intelligence<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
                 <div style="padding: 15px;">
+                    <div id="bot-greeting" style="font-size: 1.3em; font-weight: bold; color: #2c3e50; margin-bottom: 5px;">
+            Hello, Traveler!
+        </div>
                     <div class="bot-status-bar">
                         <div class="status-dot"></div>
                         <span>SJDM Live Transit Analytics Online</span>
@@ -303,11 +306,14 @@
 // --- 1. USER IDENTITY & SAVED DATA ---
 function saveUserName(name) {
     if (!name) return;
-    localStorage.setItem('monte_user_name', name);
-    const botMsg = document.getElementById('bot-message-large');
-    if (botMsg) botMsg.innerHTML = `Kamusta, <b>${name}</b>! Analyzing the best routes for you.`;
+    localStorage.setItem('monte_user_name', name); [cite: 102]
+    
+    // Update the new dedicated greeting box
+    const greetingBox = document.getElementById('bot-greeting');
+    if (greetingBox) {
+        greetingBox.innerHTML = `Kamusta, <b>${name}</b>!`;
+    }
 }
-
 function saveHome() {
     if (originMarker) {
         localStorage.setItem('monte_home_coords', JSON.stringify(originMarker.getLatLng()));
@@ -379,15 +385,15 @@ function setTheme(mode, element) {
 
 // --- 4. INITIALIZATION ---
 function initializeUserSettings() {
-    // Restore Name
-    const name = localStorage.getItem('monte_user_name');
+    const name = localStorage.getItem('monte_user_name'); [cite: 119]
+    const greetingBox = document.getElementById('bot-greeting');
+    
     if (name) {
-        const input = document.getElementById('user-name-input');
-        if (input) input.value = name;
-        const botMsg = document.getElementById('bot-message-large');
-        if (botMsg) botMsg.innerHTML = `Welcome back, <b>${name}</b>!`;
+        const input = document.getElementById('user-name-input'); [cite: 120]
+        if (input) input.value = name; [cite: 120]
+        if (greetingBox) greetingBox.innerHTML = `Kamusta, <b>${name}</b>!`;
     }
-
+    
     // Restore Theme
     const savedTheme = localStorage.getItem('monte_theme_pref') || 'auto';
     setTheme(savedTheme);
