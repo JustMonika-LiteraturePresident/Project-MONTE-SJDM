@@ -645,31 +645,34 @@ function calculatePublicFare(dist) {
         if (isDiscounted && triMode === 'regular') total *= 0.8;
         fareText = "₱ " + Math.ceil(total).toFixed(2);
     } 
-    else if (currentVehicle === 'uv') {
-        fareText = "₱ 60.00 (Fixed)"; 
-        if (originMarker && destMarker) {
-            const start = originMarker.getLatLng();
-            const end = destMarker.getLatLng();
+   else if (currentVehicle === 'uv') {
+    fareText = "₱ 60.00 (Standard)"; 
+    if (originMarker && destMarker) {
+        const start = originMarker.getLatLng();
+        const end = destMarker.getLatLng();
 
-            const getTerminalLatLng = (name) => {
-                if (!uvTerminalsData) return null;
-                const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
-                return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
-            };
+        const getTerminalLatLng = (name) => {
+            if (!uvTerminalsData || !uvTerminalsData.features) return null;
+            const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
+            return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
+        };
 
-            const locSM = getTerminalLatLng("UV Express SM CSJDM");
-            const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
-            const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
-            const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
+        // Matching "Fairveiw" exactly as it appears in your data
+        const locSM = getTerminalLatLng("UV Express SM CSJDM");
+        const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
+        const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces"); 
+        const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
 
-            const isFromSM = locSM && start.distanceTo(locSM) < 1500;
-            const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 1500;
-            const isToFairview = (locFT && end.distanceTo(locFT) < 1500) || (locRob && end.distanceTo(locRob) < 1500);
+        const isFromSM = locSM && start.distanceTo(locSM) < 1500;
+        const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 1500;
+        const isToFairview = (locFT && end.distanceTo(locFT) < 2000) || (locRob && end.distanceTo(locRob) < 2000);
 
-            if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
-            else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
-        }
-    } 
+        if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
+        else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
+    }
+    document.getElementById('fare-display').innerText = fareText;
+    return;
+}
     else if (currentVehicle === 'bus') {
         fareText = "Data Mapping...";
         display.style.color = "#7f8c8d";
@@ -685,13 +688,11 @@ function calculatePublicFare(dist) {
 function updateMONTE() {
     if (!originMarker || !destMarker) return;
 
-    // 1. THE KILL SWITCH: Force-remove all custom UV/Trike/Walking layers
+    // 1. THE KILL SWITCH: Clear all previous routing layers
     if (routingControl) { map.removeControl(routingControl); routingControl = null; }
     if (accessLine) { map.removeLayer(accessLine); accessLine = null; }
     if (egressLine) { map.removeLayer(egressLine); egressLine = null; }
     if (uvPathLayer) { map.removeLayer(uvPathLayer); uvPathLayer = null; }
-    
-    // Clear walking route if it exists
     if (window.walkingRouteControl) {
         map.removeControl(window.walkingRouteControl);
         window.walkingRouteControl = null;
@@ -700,55 +701,56 @@ function updateMONTE() {
     const start = originMarker.getLatLng();
     const dest = destMarker.getLatLng();
 
-    // 2. UV EXPRESS LOGIC (Custom Polyline Logic)
+    // 2. UV EXPRESS LOGIC
     if (currentVehicle === 'uv' && currentMode === 'public') {
         const boardTerm = findNearestTerminal(start, uvTerminalsData);
         const dropTerm = findNearestTerminal(dest, uvTerminalsData);
 
         if (boardTerm && dropTerm) {
-            // Origin to Boarding Terminal (Blue Dotted)
-            accessLine = L.polyline([start, boardTerm.coords], { color: '#3498db', weight: 4, dashArray: '5, 10' }).addTo(map);
+            // Access: Home to Terminal (Blue)
+            accessLine = L.polyline([start, boardTerm.coords], { 
+                color: '#3498db', weight: 4, dashArray: '5, 10' 
+            }).addTo(map);
             
-            // Drop-off Terminal to Destination (Red Dotted)
-            egressLine = L.polyline([dropTerm.coords, dest], { color: '#e74c3c', weight: 4, dashArray: '5, 10' }).addTo(map);
-            
+            // Egress: Terminal to Destination (Red)
+            egressLine = L.polyline([dropTerm.coords, dest], { 
+                color: '#e74c3c', weight: 4, dashArray: '5, 10' 
+            }).addTo(map);
+
             displayFixedUVRoute(boardTerm.name);
-            calculatePublicFare(0); // Trigger UV fixed fare logic
-            return; // EXIT: Do not let standard OSRM routing run
+            
+            // Calculate estimated distance for UV (Start -> Terminal -> End)
+            // 15km is the approximate length of the UV route itself
+            const estDist = (start.distanceTo(boardTerm.coords) + 15000 + dropTerm.coords.distanceTo(dest)) / 1000;
+            
+            document.getElementById('public-fare-box').style.display = 'block';
+            document.getElementById('private-dist-box').style.display = 'block'; // Show distance box
+            document.getElementById('dist-display').innerText = estDist.toFixed(2) + " km (Est.)";
+            
+            calculatePublicFare(0); 
+            return; // EXIT: Do not run standard OSRM routing
         }
     }
 
-    // 3. PREPARE OSRM ROUTING (Jeep, Trike, Moto, Private)
+    // 3. STANDARD ROUTING (Jeep, Trike, Private)
     let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
     let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
     const trafficMult = typeof updateTrafficStatus === 'function' ? updateTrafficStatus() : 1;
 
     let finalWaypoints = [start, dest]; 
-    
-    // Tricycle TODA Logic
+
     if (currentVehicle === 'trike' && currentMode === 'public') {
         const res = findNearestToda(start);
         if (res && res.terminal) {
-            const terminalLatLng = L.latLng(
-                res.terminal.geometry.coordinates[1], 
-                res.terminal.geometry.coordinates[0]
-            );
-            
-            // Re-route vehicle to start from the TODA terminal
-            finalWaypoints = [terminalLatLng, dest];
-            
-            // Show the walking leg to the user
-            if (typeof checkNearestTodaUI === 'function') checkNearestTodaUI(start); 
+            const termLL = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
+            finalWaypoints = [termLL, dest];
+            if (typeof checkNearestTodaUI === 'function') checkNearestTodaUI(start);
         }
     }
 
-    // 4. EXECUTE UNIFIED OSRM ROUTING
     routingControl = L.Routing.control({
         waypoints: finalWaypoints,
-        router: L.Routing.osrmv1({ 
-            serviceUrl: 'https://router.project-osrm.org/route/v1', 
-            profile: routeProfile 
-        }),
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: routeProfile }),
         createMarker: () => null,
         lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] },
         addWaypoints: false
@@ -764,7 +766,6 @@ function updateMONTE() {
             document.getElementById('public-fare-box').style.display = 'none';
             document.getElementById('private-dist-box').style.display = 'block';
             document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-            
             let arrival = new Date(); 
             arrival.setMinutes(arrival.getMinutes() + t);
             document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
