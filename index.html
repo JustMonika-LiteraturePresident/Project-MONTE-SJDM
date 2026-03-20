@@ -629,8 +629,8 @@ function calculatePublicFare(dist) {
 
     if (currentVehicle === 'jeep') {
         const jeepType = document.getElementById('jeep-type').value;
-        let baseFare = (jeepType === 'traditional') ? 14.00 : 17.00;
-        let perKm = (jeepType === 'traditional') ? 2.00 : 2.40;
+        let baseFare = (jeepType === 'traditional') ? 13.00 : 15.00;
+        let perKm = (jeepType === 'traditional') ? 1.80 : 2.20;
 
         total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
         if (isDiscounted) total *= 0.8;
@@ -693,18 +693,21 @@ function updateMONTE() {
     const start = originMarker.getLatLng();
     const end = destMarker.getLatLng();
 
+    // UV EXPRESS LOGIC
     if (currentVehicle === 'uv' && currentMode === 'public') {
         const boardTerm = findNearestTerminal(start, uvTerminalsData);
-        const dropTerm = findNearestTerminal(end, uvTerminalsData);
+        const dropTerm = findNearestTerminal(dest, uvTerminalsData); // Find the exit terminal
 
         if (boardTerm && dropTerm) {
-            if (accessLine) map.removeLayer(accessLine);
-            if (egressLine) map.removeLayer(egressLine);
-
-            accessLine = L.polyline([start, boardTerm.coords], { color: 'blue', dashArray: '5, 10' }).addTo(map);
-            egressLine = L.polyline([dropTerm.coords, end], { color: 'red', dashArray: '5, 10' }).addTo(map);
+            // 1. Origin to First Terminal (Blue)
+            accessLine = L.polyline([start, boardTerm.coords], { color: '#3498db', weight: 4, dashArray: '5, 10' }).addTo(map);
+            
+            // 2. Last Terminal to Destination (Red) - THIS WAS MISSING
+            egressLine = L.polyline([dropTerm.coords, dest], { color: '#e74c3c', weight: 4, dashArray: '5, 10' }).addTo(map);
 
             displayFixedUVRoute(boardTerm.name);
+            
+            // 3. Update the Fare Matrix manually for UV
             calculatePublicFare(0); 
             return; 
         }
@@ -846,17 +849,26 @@ function updateMONTE() {
         }
 
         function resetMarkers() {
-            clickCount = 0;
-            if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
-            if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
-            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-            if (walkingRouteControl) { map.removeControl(walkingRouteControl); walkingRouteControl = null; }
-            document.getElementById('fare-display').innerText = "₱ 0.00";
-            document.getElementById('dist-display').innerText = "0.00 km";
-            document.getElementById('time-display').innerText = "--:--";
-            document.getElementById('bot-message-large').innerText = "Analyzing city patterns...";
-            document.getElementById('bot-traffic-analysis').innerText = "Waiting for route input...";
-        }
+    // Clear Map Layers
+    if (originMarker) map.removeLayer(originMarker);
+    if (destMarker) map.removeLayer(destMarker);
+    if (routingControl) map.removeControl(routingControl);
+    if (accessLine) map.removeLayer(accessLine);
+    if (egressLine) map.removeLayer(egressLine);
+    if (uvPathLayer) map.removeLayer(uvPathLayer);
+
+    // Reset Variables
+    originMarker = null;
+    destMarker = null;
+    clickCount = 0;
+
+    // RESET THE UI (This fixes the "not moving" fare)
+    document.getElementById('fare-display').innerText = "---";
+    document.getElementById('dist-display').innerText = "0.00 km";
+    document.getElementById('time-display').innerText = "--:--";
+    document.getElementById('public-fare-box').style.display = 'none';
+    document.getElementById('bot-message-large').innerText = "Markers cleared. Select a new origin and destination.";
+}
 
         function findNearestTerminal(ll, data) {
     // 1. Safety Check: If GeoJSON data hasn't loaded yet, stop.
