@@ -385,11 +385,11 @@ function setTheme(mode, element) {
 
 // --- 4. INITIALIZATION ---
 function initializeUserSettings() {
-    const name = localStorage.getItem('monte_user_name'); [cite: 119]
+    const name = localStorage.getItem('monte_user_name');
     const greetingBox = document.getElementById('bot-greeting');
     
     if (name) {
-        const input = document.getElementById('user-name-input'); [cite: 120]
+        const input = document.getElementById('user-name-input');
         if (input) input.value = name; [cite: 120]
         if (greetingBox) greetingBox.innerHTML = `Kamusta, <b>${name}</b>!`;
     }
