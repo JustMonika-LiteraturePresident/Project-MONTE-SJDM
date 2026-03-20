@@ -266,11 +266,8 @@ map = L.map('map', {
 
 // 4. ATTACH OTHER COMPONENTS
 var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
-uvLayerGroup.addTo(map);
-todaLayer.addTo(map);
 
    var currentRain = false; // Fixes the Traffic Status error
-var uvTerminalsData = null; 
 
 // Define uvIcon here so loadUVExpress can use it
 const uvIcon = L.icon({
@@ -966,10 +963,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!map) {
         map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
     }
-
-    // 3. Add Layer Groups to Map
-    uvLayerGroup.addTo(map);
-    todaLayer.addTo(map);
 
     // 4. ATTACH CLICK LISTENER (Must be inside here!)
     map.on('click', e => {
