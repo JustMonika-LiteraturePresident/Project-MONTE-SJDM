@@ -956,9 +956,6 @@ function updateClock() {
 // --- 6. INITIALIZATION BLOCK ---
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Define UI Elements
-    const oBox = document.getElementById('origin-box');
-    const dBox = document.getElementById('dest-box');
-
     // 2. Initialize Map (If not already initialized)
     if (!map) {
         map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
