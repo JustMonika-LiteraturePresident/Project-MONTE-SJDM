@@ -227,24 +227,26 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
-        var sjdm = [14.8114, 121.0450];
+       // 1. DECLARE VARIABLES (Global Scope)
+var sjdm = [14.8114, 121.0450];
 var originMarker, destMarker, routingControl, walkingRouteControl;
 var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
 var terminalData = { features: [] };
 var todaLayer = L.layerGroup(); 
 var clickCount = 0;
 var currentRain = false;
-var uvTerminalsData = null; 
-
-// 1. INITIALIZE THE MAP FIRST
+var uvTerminalsData = null; // Only need this once
 var map;
 var uvLayerGroup;
-var uvTerminalsData = null;
-   map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
-            var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 
-// 2. NOW CREATE THE LAYER GROUPS USING THE INITIALIZED MAP
-uvLayerGroup = L.layerGroup(); // Now this works because map exists!
+// 2. INITIALIZE THE MAP
+map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
+var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
+
+// 3. INITIALIZE AND ATTACH LAYER GROUPS
+// Use .addTo(map) here so the markers actually appear!
+uvLayerGroup = L.layerGroup().addTo(map); 
+todaLayer.addTo(map);
         
         // Theme-specific map layers
         const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
