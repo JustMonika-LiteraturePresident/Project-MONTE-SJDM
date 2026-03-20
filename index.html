@@ -227,8 +227,7 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
-     // 1. Basic Variables
-// 1. DEFINE TILE LAYERS FIRST (No dependencies)
+     // 1. DEFINE CONSTANTS FIRST (The Foundation)
 const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
 });
@@ -238,26 +237,26 @@ const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x
     subdomains: 'abcd'
 });
 
-// 2. DEFINE GLOBAL VARIABLES
+// 2. GLOBAL VARIABLES
 var sjdm = [14.8114, 121.0450];
 var map; 
-var uvLayerGroup = L.layerGroup();
-var todaLayer = L.layerGroup();
 var originMarker, destMarker, routingControl, walkingRouteControl;
 var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
+var uvLayerGroup = L.layerGroup();
+var todaLayer = L.layerGroup();
 var uvTerminalsData = null;
 
-// 3. INITIALIZE THE MAP (Now lightTiles is ready)
+// 3. INITIALIZE THE MAP (Now it can safely see lightTiles)
 map = L.map('map', { 
     zoomControl: false, 
     layers: [lightTiles] 
 }).setView(sjdm, 13);
 
-// 4. ATTACH REMAINING UI
+// 4. ATTACH OTHER COMPONENTS
 var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 uvLayerGroup.addTo(map);
 todaLayer.addTo(map);
-
+        
         const sjdmZones = [
             { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
             { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "High congestion at Muzon intersection. Expect slow movement." },
