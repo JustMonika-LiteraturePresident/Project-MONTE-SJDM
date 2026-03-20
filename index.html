@@ -515,7 +515,7 @@ function initializeUserSettings() {
        function updateTrafficStatus() {
     const now = new Date();
     const hour = now.getHours();
-    const seconds = now.getSeconds(); // Required for the 10-second rotation logic
+    const seconds = now.getSeconds();
     
     let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
     let botText = "Roads look clear for San Jose del Monte right now. Perfect time for a trip!";
@@ -532,10 +532,10 @@ function initializeUserSettings() {
     // 2. Weather Impact
     if (window.currentRain) {
         status.multiplier += 0.3;
-        botText += " Rain detected—expect slower transit speeds and potential tricycle scarcity.";
+        botText += " Rain detected—expect slower transit speeds.";
     }
 
-    // 3. Zone-specific Alerts (Project MONTE Geographic Awareness)
+    // 3. Zone-specific Alerts
     if (typeof destMarker !== 'undefined' && destMarker) {
         const dl = destMarker.getLatLng();
         if (typeof sjdmZones !== 'undefined') {
@@ -559,7 +559,6 @@ function initializeUserSettings() {
     }
 
     // 5. Unified UI Updates
-    // Side-panel / Compact UI
     const statusLabel = document.getElementById('traffic-label');
     const botDisplay = document.getElementById('bot-text');
     if (statusLabel) {
@@ -568,17 +567,18 @@ function initializeUserSettings() {
     }
     if (botDisplay) botDisplay.innerHTML = botText;
 
-    // Large Dashboard / Bot UI
-    if (document.getElementById('traffic-status')) document.getElementById('traffic-status').innerText = status.label;
-    if (document.getElementById('traffic-desc')) document.getElementById('traffic-desc').innerText = status.desc;
-    if (document.getElementById('bot-message-large')) document.getElementById('bot-message-large').innerHTML = botText;
+    // Update Dashboard elements if they exist
+    const ts = document.getElementById('traffic-status');
+    const td = document.getElementById('traffic-desc');
+    const bml = document.getElementById('bot-message-large');
+    const bta = document.getElementById('bot-traffic-analysis');
+
+    if (ts) ts.innerText = status.label;
+    if (td) td.innerText = status.desc;
+    if (bml) bml.innerHTML = botText;
+    if (bta) bta.innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
     
-    const analysisElement = document.getElementById('bot-traffic-analysis');
-    if (analysisElement) {
-        analysisElement.innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
-    }
-    
-    // 6. Return the multiplier for OSRM routing calculations
+    // 6. Final Return (The ONLY one allowed)
     return status.multiplier;
 }
        function calculatePublicFare(dist) {
