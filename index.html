@@ -725,47 +725,64 @@ function displayFixedUVRoute(terminalName) {
             }).addTo(map);
 
             if (uvPathLayer.getLayers().length > 0) {
-                // filter(l => l) ensures we don't crash if accessLine isn't drawn yet
                 const group = new L.FeatureGroup([accessLine, uvPathLayer, egressLine].filter(l => l));
                 map.fitBounds(group.getBounds(), { padding: [50, 50] });
             }
         })
         .catch(err => console.error("Error loading UV GeoJSON:", err));
 }
-            
-            if (window.uvPathLayer.getLayers().length > 0) {
-                const group = new L.FeatureGroup([window.accessLine, window.uvPathLayer, window.egressLine]);
-                map.fitBounds(group.getBounds(), { padding: [50, 50] });
-            }
-       
 
-            let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
-            let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
-            const trafficMult = updateTrafficStatus();
+function updateMONTE() {
+    if (!originMarker || !destMarker) return;
 
-            routingControl = L.Routing.control({
-                waypoints: [start, destMarker.getLatLng()],
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: routeProfile }),
-                createMarker: () => null,
-                lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] }
-            }).on('routesfound', e => {
-                let d = e.routes[0].summary.totalDistance / 1000;
-                let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
+    // 1. Clear old routing
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
 
-                if (currentMode === 'public') {
-                    calculatePublicFare(d);
-                    document.getElementById('public-fare-box').style.display = 'block';
-                    document.getElementById('private-dist-box').style.display = 'none';
-                } else {
-                    document.getElementById('public-fare-box').style.display = 'none';
-                    document.getElementById('private-dist-box').style.display = 'block';
-                    document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-                    let arrival = new Date(); arrival.setMinutes(arrival.getMinutes() + t);
-                    document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                }
-            }).addTo(map);
+    const start = originMarker.getLatLng();
+    const dest = destMarker.getLatLng();
+
+    // 2. UV EXPRESS LOGIC (Fixed Route)
+    if (currentVehicle === 'uv' && currentMode === 'public') {
+        const boardTerm = findNearestTerminal(start, uvTerminalsData);
+        if (boardTerm) {
+            displayFixedUVRoute(boardTerm.name);
+            // We exit here because UV doesn't use the standard OSRM router
+            return; 
         }
+    }
 
+    // 3. STANDARD ROUTING (Jeep, Trike, Private)
+    let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
+    let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
+    const trafficMult = typeof updateTrafficStatus === 'function' ? updateTrafficStatus() : 1;
+
+    routingControl = L.Routing.control({
+        waypoints: [start, dest],
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: routeProfile }),
+        createMarker: () => null,
+        lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] },
+        addWaypoints: false
+    }).on('routesfound', e => {
+        let d = e.routes[0].summary.totalDistance / 1000;
+        let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
+
+        if (currentMode === 'public') {
+            calculatePublicFare(d);
+            document.getElementById('public-fare-box').style.display = 'block';
+            document.getElementById('private-dist-box').style.display = 'none';
+        } else {
+            document.getElementById('public-fare-box').style.display = 'none';
+            document.getElementById('private-dist-box').style.display = 'block';
+            document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+            let arrival = new Date(); 
+            arrival.setMinutes(arrival.getMinutes() + t);
+            document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+    }).addTo(map);
+}
         function getDistance(lat1, lon1, lat2, lon2) {
             var R = 6371;
             var dLat = (lat2-lat1)*Math.PI/180;
