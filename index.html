@@ -234,6 +234,8 @@
         var todaLayer = L.layerGroup(); 
         var clickCount = 0;
         var currentRain = false;
+        var uvLayerGroup = L.layerGroup().addTo(map);
+        var uvTerminalsData = null; // Store it globally here
 
         // Theme-specific map layers
         const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -273,6 +275,81 @@
                     onEachFeature: (f, l) => l.bindPopup("<b>" + (f.properties.Name || "Terminal") + "</b>")
                 }).addTo(todaLayer);
             });
+
+// --- UV EXPRESS CORE LOGIC ---
+let uvTerminalsData = null; // Store globally for the "Nearest" check
+let uvLayerGroup = L.layerGroup().addTo(map);
+
+async function loadUVExpress() {
+    try {
+        const terminalResponse = await fetch('Uv Express/UV Terminal.geojson');
+        const routeResponse = await fetch('Uv Express/UV Route.geojson');
+
+        if (!terminalResponse.ok) throw new Error("UV Files not found");
+
+        uvTerminalsData = await terminalResponse.json();
+        const routeData = await routeResponse.json();
+
+        // 1. Add the Route (Red Line)
+        L.geoJSON(routeData, {
+            style: { color: '#e74c3c', weight: 5, opacity: 0.8 }
+        }).addTo(uvLayerGroup);
+
+        // 2. Add Terminals (Blue Circles)
+        L.geoJSON(uvTerminalsData, {
+            pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+                radius: 8, fillColor: "#2980b9", color: "#fff", weight: 2, fillOpacity: 0.8
+            }),
+            onEachFeature: (feature, layer) => {
+                layer.bindPopup("<b>UV Terminal:</b> " + feature.properties.name);
+            }
+        }).addTo(uvLayerGroup);
+
+        console.log("MONTE: UV Express layers loaded.");
+    } catch (err) {
+        console.error("UV Load Error:", err);
+    }
+}
+
+function findNearestUVTerminal(userLocation) {
+    if (!uvTerminalsData) return null;
+    let closest = null;
+    let shortestDist = Infinity;
+
+    uvTerminalsData.features.forEach(f => {
+        let terminalLatLng = L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]);
+        let dist = userLocation.distanceTo(terminalLatLng);
+        if (dist < shortestDist) {
+            shortestDist = dist;
+            closest = { latlng: terminalLatLng, name: f.properties.name, dist: dist };
+        }
+    });
+    return closest;
+}
+
+function showUVAccessLeg(originLL) {
+    const nearest = findNearestUVTerminal(originLL);
+    if (!nearest) return;
+
+    // Clear old access lines if any
+    if (window.accessLine) map.removeLayer(window.accessLine);
+
+    const isFar = nearest.dist > 600;
+    const modeLabel = isFar ? "🛺 Tricycle Suggested" : "🚶 Walking Distance";
+
+    // Draw the dashed connector
+    window.accessLine = L.polyline([originLL, nearest.latlng], {
+        color: isFar ? '#f39c12' : '#95a5a6', // Orange if trike, Gray if walk
+        dashArray: '10, 10',
+        weight: 3
+    }).addTo(map);
+
+    // Show a small temporary notification or log
+    console.log(`To reach ${nearest.name}: ${modeLabel} (${(nearest.dist).toFixed(0)}m)`);
+    
+    // Optional: Bind a tooltip to the dashed line
+    window.accessLine.bindTooltip(`${modeLabel} (${(nearest.dist).toFixed(0)}m)`, { permanent: true, direction: "center" }).openTooltip();
+}
 
         async function fetchWeather() {
             try {
@@ -333,6 +410,8 @@ function useHome() {
         alert("No home location saved yet.");
     }
 }
+
+        
 
 // --- 2. UNIFIED PROFILE SYNCING (SAFE VERSION) ---
 function setProfile(p, el) { 
@@ -487,7 +566,29 @@ function initializeUserSettings() {
             total *= 0.8;
         }
     } 
-    else if (currentVehicle === 'bus' || currentVehicle === 'uv') {
+
+       else if (currentVehicle === 'uv') {
+    let fareText = "Distance-based"; // Default fallback
+    
+    // Check specific terminal routes
+    if (origin === 'SM Tungko' && destination === 'Fairview') {
+        fareText = "₱ 40.00 - ₱ 50.00";
+    } 
+    else if (origin === 'Starmall SJDM' && destination === 'Fairview') {
+        fareText = "₱ 60.00 - ₱ 70.00";
+    } 
+    else {
+        // Fallback for other UV routes if needed
+        fareText = "₱ 60.00 (Fixed)";
+    }
+
+    const display = document.getElementById('fare-display');
+    display.innerText = fareText;
+    display.style.color = "#27ae60";
+    return;
+}
+            
+    else if (currentVehicle === 'bus') {
         document.getElementById('fare-display').innerText = "Data Mapping...";
         document.getElementById('fare-display').style.color = "#7f8c8d";
         return;
@@ -583,14 +684,26 @@ function initializeUserSettings() {
         }
 
         function setupMarker(ll, isOrigin) {
-            let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', e => {
-                if (isOrigin) checkNearestTodaUI(e.target.getLatLng());
-                updateMONTE();
-            });
-            if (isOrigin) { if(originMarker) map.removeLayer(originMarker); originMarker = m; checkNearestTodaUI(ll); }
-            else { if(destMarker) map.removeLayer(destMarker); destMarker = m; }
-            updateMONTE();
+    let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', e => {
+        let newPos = e.target.getLatLng();
+        if (isOrigin) {
+            checkNearestTodaUI(newPos);
+            if (currentVehicle === 'uv') showUVAccessLeg(newPos); // Trigger on drag [cite: 401]
         }
+        updateMONTE();
+    });
+
+    if (isOrigin) { 
+        if(originMarker) map.removeLayer(originMarker); 
+        originMarker = m;
+        checkNearestTodaUI(ll); 
+        if (currentVehicle === 'uv') showUVAccessLeg(ll); // Trigger on first click [cite: 401]
+    } else { 
+        if(destMarker) map.removeLayer(destMarker); 
+        destMarker = m;
+    }
+    updateMONTE();
+}
 
         map.on('click', e => {
             clickCount++;
@@ -610,14 +723,24 @@ function initializeUserSettings() {
         }
 
         function setSubVehicle(t, el) {
-            currentVehicle = t;
-            document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
-            el.classList.add('active');
-            if (t === 'trike' && currentMode === 'public') { todaLayer.addTo(map); if(originMarker) checkNearestTodaUI(originMarker.getLatLng()); }
-            else { map.removeLayer(todaLayer); if(walkingRouteControl) map.removeControl(walkingRouteControl); }
-            updateMONTE();
-        }
+    currentVehicle = t;
+    document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
+    el.classList.add('active');
 
+    // Clear previous auxiliary layers
+    if (window.accessLine) map.removeLayer(window.accessLine);
+    if (walkingRouteControl) map.removeControl(walkingRouteControl);
+
+    if (t === 'trike' && currentMode === 'public') { 
+        todaLayer.addTo(map); 
+        if(originMarker) checkNearestTodaUI(originMarker.getLatLng());
+    } else if (t === 'uv' && currentMode === 'public') {
+        if(originMarker) showUVAccessLeg(originMarker.getLatLng()); // Trigger immediately on selection [cite: 409]
+    } else {
+        map.removeLayer(todaLayer);
+    }
+    updateMONTE();
+}
         // --- 5. SEARCH & ROUTING SETUP ---
 // --- 5. UTILITY FUNCTIONS ---
 function goHome() { 
@@ -645,6 +768,8 @@ function updateClock() {
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Restore User Settings
     initializeUserSettings();
+    
+    loadUVExpress(); 
     
     // 2. Clear Search Boxes to prevent duplicates
     const oBox = document.getElementById('origin-box');
