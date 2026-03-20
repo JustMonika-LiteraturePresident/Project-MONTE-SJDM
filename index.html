@@ -228,14 +228,7 @@
 
     <script>
      // 1. Basic Variables
-var sjdm = [14.8114, 121.0450];
-var originMarker, destMarker, routingControl, walkingRouteControl;
-var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
-var todaLayer = L.layerGroup(); 
-var uvLayerGroup = L.layerGroup();
-var uvTerminalsData = null; 
-
-// 2. DEFINE TILES FIRST (So the map can see them)
+// 1. DEFINE TILE LAYERS FIRST (No dependencies)
 const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
 });
@@ -245,13 +238,22 @@ const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x
     subdomains: 'abcd'
 });
 
-// 3. NOW INITIALIZE THE MAP
-var map = L.map('map', { 
+// 2. DEFINE GLOBAL VARIABLES
+var sjdm = [14.8114, 121.0450];
+var map; 
+var uvLayerGroup = L.layerGroup();
+var todaLayer = L.layerGroup();
+var originMarker, destMarker, routingControl, walkingRouteControl;
+var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
+var uvTerminalsData = null;
+
+// 3. INITIALIZE THE MAP (Now lightTiles is ready)
+map = L.map('map', { 
     zoomControl: false, 
-    layers: [lightTiles] // Now lightTiles is initialized and safe to use!
+    layers: [lightTiles] 
 }).setView(sjdm, 13);
 
-// 4. ADD OTHER COMPONENTS
+// 4. ATTACH REMAINING UI
 var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 uvLayerGroup.addTo(map);
 todaLayer.addTo(map);
