@@ -619,20 +619,20 @@ function initializeUserSettings() {
         }
 
         // --- 5. SEARCH & ROUTING SETUP ---
+// --- 5. UTILITY FUNCTIONS ---
 function goHome() { 
     if (map) map.flyTo(sjdm, 13); 
 }
 
-// --- 6. SYSTEM CLOCK & TICKER ---
 function updateClock() {
-    const now = new Date();
     const timeEl = document.getElementById('clock-time');
     const dateEl = document.getElementById('clock-date');
+    const now = new Date();
 
     if (timeEl) timeEl.innerText = now.toLocaleTimeString();
     if (dateEl) dateEl.innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
     
-    // Auto-update theme if in Auto mode
+    // Check auto-theme
     const activeBtn = document.querySelector('.theme-btn.active');
     if (activeBtn && activeBtn.id === 't-auto' && typeof setTheme === 'function') {
         setTheme('auto');
@@ -641,38 +641,38 @@ function updateClock() {
     if (typeof updateTrafficStatus === 'function') updateTrafficStatus();
 }
 
-// --- 7. THE MASTER INITIALIZATION (Run once when page is ready) ---
+// --- 6. INITIALIZATION BLOCK (The Final Seal) ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize UI and restore saved user data
+    // 1. Restore User Settings
     initializeUserSettings();
     
-    // 2. Clear out the boxes to prevent the "4 bars" bug
+    // 2. Clear Search Boxes to prevent duplicates
     const oBox = document.getElementById('origin-box');
     const dBox = document.getElementById('dest-box');
     if (oBox) oBox.innerHTML = '';
     if (dBox) dBox.innerHTML = '';
 
-    // 3. Setup Origin Search Bar
-    var gO = L.Control.geocoder({ 
+    // 3. Setup Origin Geocoder
+    const gO = L.Control.geocoder({ 
         defaultMarkGeocode: false,
-        placeholder: "Enter Origin (e.g., Muzon)" 
+        placeholder: "Search Origin..." 
     }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
     if (oBox) oBox.appendChild(gO.getContainer());
 
-    // 4. Setup Destination Search Bar
-    var gD = L.Control.geocoder({ 
+    // 4. Setup Destination Geocoder
+    const gD = L.Control.geocoder({ 
         defaultMarkGeocode: false,
-        placeholder: "Enter Destination (e.g., Starmall)" 
+        placeholder: "Search Destination..." 
     }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
     if (dBox) dBox.appendChild(gD.getContainer());
     
-    // 5. Start background services
+    // 5. Start Background Loops
     fetchWeather();
     loadFunFacts();
     setInterval(updateClock, 1000);
 
-    console.log("MONTE: System fully initialized.");
-});
+    console.log("MONTE: System fully sealed and initialized.");
+}); 
     </script>
 </body>
 </html>
