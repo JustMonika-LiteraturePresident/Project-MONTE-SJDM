@@ -227,36 +227,34 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
-       // 1. DECLARE VARIABLES (Global Scope)
+     // 1. Basic Variables
 var sjdm = [14.8114, 121.0450];
 var originMarker, destMarker, routingControl, walkingRouteControl;
 var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
-var terminalData = { features: [] };
 var todaLayer = L.layerGroup(); 
-var clickCount = 0;
-var currentRain = false;
-var uvTerminalsData = null; // Only need this once
-var map;
-var uvLayerGroup;
+var uvLayerGroup = L.layerGroup();
+var uvTerminalsData = null; 
 
-// 2. INITIALIZE THE MAP
-map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
+// 2. DEFINE TILES FIRST (So the map can see them)
+const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+});
+
+const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd'
+});
+
+// 3. NOW INITIALIZE THE MAP
+var map = L.map('map', { 
+    zoomControl: false, 
+    layers: [lightTiles] // Now lightTiles is initialized and safe to use!
+}).setView(sjdm, 13);
+
+// 4. ADD OTHER COMPONENTS
 var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
-
-// 3. INITIALIZE AND ATTACH LAYER GROUPS
-// Use .addTo(map) here so the markers actually appear!
-uvLayerGroup = L.layerGroup().addTo(map); 
+uvLayerGroup.addTo(map);
 todaLayer.addTo(map);
-        
-        // Theme-specific map layers
-        const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        });
-
-        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            subdomains: 'abcd'
-        });
 
         const sjdmZones = [
             { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
