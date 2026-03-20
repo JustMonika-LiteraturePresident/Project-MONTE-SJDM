@@ -618,8 +618,12 @@ function initializeUserSettings() {
             updateMONTE();
         }
 
-        function goHome() { map.flyTo(sjdm, 13); }
+        // --- 5. SEARCH & ROUTING SETUP ---
+function goHome() { 
+    if (map) map.flyTo(sjdm, 13); 
+}
 
+// --- 6. SYSTEM CLOCK & TICKER ---
 function updateClock() {
     const now = new Date();
     const timeEl = document.getElementById('clock-time');
@@ -628,45 +632,46 @@ function updateClock() {
     if (timeEl) timeEl.innerText = now.toLocaleTimeString();
     if (dateEl) dateEl.innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
     
-    // Safety check: Only auto-update theme if map is actually ready
-    if (map) {
-        const activeBtn = document.querySelector('.theme-btn.active');
-        if (activeBtn && activeBtn.id === 't-auto') {
-            setTheme('auto');
-        }
+    // Auto-update theme if in Auto mode
+    const activeBtn = document.querySelector('.theme-btn.active');
+    if (activeBtn && activeBtn.id === 't-auto' && typeof setTheme === 'function') {
+        setTheme('auto');
     }
     
-    updateTrafficStatus();
+    if (typeof updateTrafficStatus === 'function') updateTrafficStatus();
 }
 
+// --- 7. THE MASTER INITIALIZATION (Run once when page is ready) ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize the UI and restore saved user data
+    // 1. Initialize UI and restore saved user data
     initializeUserSettings();
     
     // 2. Clear out the boxes to prevent the "4 bars" bug
-    document.getElementById('origin-box').innerHTML = '';
-    document.getElementById('dest-box').innerHTML = '';
+    const oBox = document.getElementById('origin-box');
+    const dBox = document.getElementById('dest-box');
+    if (oBox) oBox.innerHTML = '';
+    if (dBox) dBox.innerHTML = '';
 
-    // 3. Setup Origin Search Bar with Placeholder
+    // 3. Setup Origin Search Bar
     var gO = L.Control.geocoder({ 
         defaultMarkGeocode: false,
         placeholder: "Enter Origin (e.g., Muzon)" 
     }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
-    document.getElementById('origin-box').appendChild(gO.getContainer());
+    if (oBox) oBox.appendChild(gO.getContainer());
 
-    // 4. Setup Destination Search Bar with Placeholder
+    // 4. Setup Destination Search Bar
     var gD = L.Control.geocoder({ 
         defaultMarkGeocode: false,
-        placeholder: "Enter Destination (e.g., SM San Jose)" 
+        placeholder: "Enter Destination (e.g., Starmall)" 
     }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
-    document.getElementById('dest-box').appendChild(gD.getContainer());
+    if (dBox) dBox.appendChild(gD.getContainer());
     
     // 5. Start background services
     fetchWeather();
     loadFunFacts();
     setInterval(updateClock, 1000);
 
-    console.log("MONTE: All systems initialized and ready.");
+    console.log("MONTE: System fully initialized.");
 });
     </script>
 </body>
