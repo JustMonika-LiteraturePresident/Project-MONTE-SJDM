@@ -828,11 +828,6 @@ function updateMONTE() {
         }
 
         function setupMarker(ll, isOrigin) {
-    // 1. Clear existing marker if replacing
-    if (isOrigin && originMarker) map.removeLayer(originMarker);
-    if (!isOrigin && destMarker) map.removeLayer(destMarker);
-
-    // 2. Create the new marker
     let m = L.marker(ll, { draggable: true }).addTo(map).on('dragend', e => {
         let newPos = e.target.getLatLng();
         if (isOrigin) {
@@ -842,24 +837,19 @@ function updateMONTE() {
         updateMONTE();
     });
 
-    // 3. Assign to global variables
-    if (isOrigin) originMarker = m;
-    else destMarker = m;
-
-    updateMONTE();
-} // <--- THIS WAS THE MISSING BRACE
-
     if (isOrigin) { 
-        if(originMarker) map.removeLayer(originMarker); 
+        if (originMarker) map.removeLayer(originMarker); 
         originMarker = m;
         checkNearestTodaUI(ll); 
-        if (currentVehicle === 'uv') showUVAccessLeg(ll); // Trigger on first click [cite: 401]
+        if (currentVehicle === 'uv') showUVAccessLeg(ll);
     } else { 
-        if(destMarker) map.removeLayer(destMarker); 
+        if (destMarker) map.removeLayer(destMarker); 
         destMarker = m;
     }
-    updateMONTE();
 
+    updateMONTE();
+} // <--- Ensure there is ONLY ONE brace here. Check line 862 for a second one and delete it.
+        
         function switchMainMode(m) {
             currentMode = m;
             document.getElementById('mode-public').className = m==='public'?'mode-btn active':'mode-btn';
