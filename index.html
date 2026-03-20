@@ -40,6 +40,35 @@
         #bot-fact-large { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #f1c40f; color: #555; font-style: italic; }
         body.dark-theme #bot-fact-large { background: #333; color: #bbb; }
 
+        .optimizer-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    background: var(--card-bg); /* Use your existing theme variable */
+    border-left: 6px solid #ccc;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.optimizer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Personality Colors */
+.card-economic { border-color: #27ae60; } /* Green for Money */
+.card-flash { border-color: #e74c3c; }    /* Red for Speed */
+.card-scout { border-color: #3498db; }    /* Blue for Distance */
+
+.card-title { font-weight: 800; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 4px; }
+.card-main-val { font-size: 1.4rem; font-weight: bold; }
+.card-sub-info { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+
+.card-icon-area { font-size: 1.8rem; opacity: 0.2; }
+
         /* General UI components */
         .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: #eee; padding: 4px; border-radius: 8px; }
         body.dark-theme .theme-container, body.dark-theme .profile-container { background: #444; }
@@ -86,6 +115,25 @@
                     <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
                     <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
                 </div>
+
+                <div class="journey-type-selector">
+    <button id="type-single" class="type-btn active" onclick="setJourneyType('single')">Single Trip</button>
+    <button id="type-cutting" class="type-btn" onclick="setJourneyType('cutting')">Cutting Trip</button>
+</div>
+
+<hr class="ui-divider">
+
+<div id="standard-options-view">
+    <div class="mode-selection">
+        <p class="hint-text">Select your preferred vehicle type.</p>
+    </div>
+</div>
+
+<div id="cutting-results-view" style="display: none;">
+    <div class="optimizer-header">🏆 MONTE Recommendations</div>
+    <div id="optimizer-cards-container">
+        </div>
+</div>
 
                 <div class="mode-container">
                     <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')"><span>Public</span></button>
@@ -290,6 +338,53 @@ const uvIcon = L.icon({
         ];
 
         let dynamicFunFacts = ["SJDM: The Rising City."];
+
+        function setJourneyType(type) {
+    currentJourneyType = type;
+
+    // 1. Toggle Button Styles
+    document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('type-' + type).classList.add('active');
+
+    // 2. The Wipe
+    const standardView = document.getElementById('standard-options-view');
+    const cuttingView = document.getElementById('cutting-results-view');
+
+    if (type === 'cutting') {
+        standardView.style.display = 'none'; // WIPE
+        cuttingView.style.display = 'block'; // SHOW OPTIMIZER
+        
+        // Render dummy cards for now so you can see the UI
+        renderOptimizerCards(); 
+    } else {
+        standardView.style.display = 'block'; // RESTORE
+        cuttingView.style.display = 'none';  // HIDE OPTIMIZER
+    }
+}
+
+function renderOptimizerCards() {
+    const container = document.getElementById('optimizer-cards-container');
+    
+    // This is temporary dummy data for testing the UI
+    const results = [
+        { id: 'econ', name: 'ECONOMIC', val: '₱13.00', meta: 'Jeepney • 45 mins', class: 'card-economic', icon: 'fa-coins' },
+        { id: 'flash', name: 'FLASH', val: '22 mins', meta: 'Trike + UV • ₱65.00', class: 'card-flash', icon: 'fa-bolt' },
+        { id: 'scout', name: 'SCOUT', val: '3.2 km', meta: 'Shortest path • ₱25.00', class: 'card-scout', icon: 'fa-map-pin' }
+    ];
+
+    container.innerHTML = results.map(res => `
+        <div class="optimizer-card ${res.class}" onclick="selectWinner('${res.id}')">
+            <div class="card-details">
+                <div class="card-title">${res.name}</div>
+                <div class="card-main-val">${res.val}</div>
+                <div class="card-sub-info">${res.meta}</div>
+            </div>
+            <div class="card-icon-area">
+                <i class="fa ${res.icon}"></i>
+            </div>
+        </div>
+    `).join('');
+}
 
         fetch('Tricycle_Toda.geojson') 
             .then(res => res.json())
