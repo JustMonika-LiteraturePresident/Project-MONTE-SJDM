@@ -21,6 +21,14 @@
         
         #clock-container { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; }
         #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
+
+        .v-type.active {
+    background-color: #27ae60 !important;
+    color: white !important;
+    border: 2px solid #1e8449 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
         
         /* Bot Tab Specific Styling */
         .bot-status-bar { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; }
@@ -559,8 +567,8 @@ function initializeUserSettings() {
 
     if (currentVehicle === 'jeep') {
         const jeepType = document.getElementById('jeep-type').value;
-        let baseFare = (jeepType === 'traditional') ? 14.00 : 17.00;
-        let perKm = (jeepType === 'traditional') ? 2.00 : 2.40;
+        let baseFare = (jeepType === 'traditional') ? 13.00 : 15.00;
+        let perKm = (jeepType === 'traditional') ? 1.80 : 2.20;
 
         total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
         if (isDiscounted) total *= 0.8;
@@ -734,7 +742,7 @@ function updateMONTE() {
 function displayFixedUVRoute(terminalName) {
     if (uvPathLayer) map.removeLayer(uvPathLayer);
 
-    fetch('UV Route.geojson')
+fetch('Uv Express/UV Route.geojson')
         .then(res => res.json())
         .then(data => {
             uvPathLayer = L.geoJSON(data, {
@@ -947,6 +955,12 @@ function updateMONTE() {
     if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
     if (window.accessLine) map.removeLayer(window.accessLine);
     if (walkingRouteControl) map.removeControl(walkingRouteControl);
+
+             // 1. UI: Remove 'active' from all buttons, add to the one clicked
+    document.querySelectorAll('.v-type').forEach(btn => btn.classList.remove('active'));
+    if (el) {
+        el.classList.add('active');
+    }
 
     // 2. ACTIVATE SELECTED LAYER
     if (t === 'trike' && currentMode === 'public') { 
