@@ -850,6 +850,37 @@ function updateMONTE() {
             document.getElementById('bot-traffic-analysis').innerText = "Waiting for route input...";
         }
 
+        function findNearestTerminal(ll, data) {
+    // 1. Safety Check: If GeoJSON data hasn't loaded yet, stop.
+    if (!data || !data.features || data.features.length === 0) {
+        console.error("UV Terminal data is missing or empty.");
+        return null;
+    }
+
+    let nearest = null;
+    let minD = Infinity;
+
+    data.features.forEach(f => {
+        // 2. IMPORTANT: Leaflet uses [lat, lng], but GeoJSON uses [lng, lat].
+        // We must flip them: coordinates[1] is Lat, [0] is Lng.
+        const terminalLL = L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]);
+        
+        // 3. Use Leaflet's built-in distanceTo (returns meters)
+        const d = ll.distanceTo(terminalLL);
+        
+        if (d < minD) {
+            minD = d;
+            // Store both the name (for filtering the route) and the LatLng (for drawing lines)
+            nearest = { 
+                name: f.properties.Name, 
+                coords: terminalLL 
+            };
+        }
+    });
+
+    return nearest;
+}
+
         function findNearestToda(ll) {
             let nearest = null, minD = Infinity;
             terminalData.features.forEach(f => {
