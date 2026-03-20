@@ -777,25 +777,20 @@ function updateClock() {
     if (typeof updateTrafficStatus === 'function') updateTrafficStatus();
 }
 
-// --- 6. INITIALIZATION BLOCK (The Final Seal) ---
+// --- 6. INITIALIZATION BLOCK ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize the Map FIRST (Crucial!)
-    // If you already have this line elsewhere, make sure it's in the global scope.
-    // If not, add it here:
-    if (typeof map === 'undefined' || map === null) {
-        map = L.map('map').setView([14.8111, 121.0450], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+    // 1. Initialize Map (Make sure this runs!)
+    if (!map) {
+        map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
     }
-    // 1. Restore User Settings
+
+    // 2. NOW add your layer groups to the map
+    uvLayerGroup.addTo(map);
+    todaLayer.addTo(map);
+
+    // 3. The rest of your setup
     initializeUserSettings();
-    
-    // 2. Clear Search Boxes to prevent duplicates
-    const oBox = document.getElementById('origin-box');
-    const dBox = document.getElementById('dest-box');
-    if (oBox) oBox.innerHTML = '';
-    if (dBox) dBox.innerHTML = '';
+    loadUVExpress();
 
     // 3. Setup Origin Geocoder
     const gO = L.Control.geocoder({ 
@@ -810,13 +805,6 @@ document.addEventListener('DOMContentLoaded', () => {
         placeholder: "Search Destination..." 
     }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
     if (dBox) dBox.appendChild(gD.getContainer());
-
-    // 3. Load the UV Express data ONLY if map is ready
-    if (typeof map !== 'undefined' && map !== null) {
-        loadUVExpress(); 
-    } else {
-        console.error("Map is not initialized! Check where 'var map' is defined.");
-    }
     
     // 5. Start Background Loops
     fetchWeather();
