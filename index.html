@@ -356,52 +356,57 @@ const uvIcon = L.icon({
 
         let dynamicFunFacts = ["SJDM: The Rising City."];
 
-       function setJourneyType(type) {
+      function setJourneyType(type) {
     const stdView = document.getElementById('standard-options-view');
     const cutView = document.getElementById('cutting-results-view');
     const sBtn = document.getElementById('type-single');
     const cBtn = document.getElementById('type-cutting');
 
     if (type === 'single') {
+        // Just show/hide, don't move nodes
         stdView.style.display = 'block';
         cutView.style.display = 'none';
+        
         sBtn.classList.add('active');
         cBtn.classList.remove('active');
     } else {
         stdView.style.display = 'none';
         cutView.style.display = 'block';
+        
         cBtn.classList.add('active');
         sBtn.classList.remove('active');
         
-        // Trigger the Optimizer Card Generation
+        // Render cards into the EMPTY container
         renderOptimizerCards();
     }
 }
 
 function renderOptimizerCards() {
     const container = document.getElementById('optimizer-cards-container');
+    // Always clear the container first to prevent duplication errors
     container.innerHTML = ''; 
 
-    const schemes = [
-        { id: 'econ', title: 'Economic', val: '₱ 22.00', info: 'Cheapest Option', icon: 'fa-tag', color: '#27ae60' },
-        { id: 'fast', title: 'Fastest', val: '18 mins', info: 'Saves 10 mins', icon: 'fa-bolt', color: '#e74c3c' },
+    const strategies = [
+        { id: 'econ', title: 'Economic', val: '₱ 22.00', info: 'Student Discount Applied', icon: 'fa-tag', color: '#27ae60' },
+        { id: 'fast', title: 'Fastest', val: '18 mins', info: 'Via Quirino Highway', icon: 'fa-bolt', color: '#e74c3c' },
         { id: 'short', title: 'Shortest', val: '2.8 km', info: 'Direct Path', icon: 'fa-map-location-dot', color: '#3498db' }
     ];
 
-    schemes.forEach(s => {
-        const card = `
-            <div class="optimizer-card" style="border-left: 6px solid ${s.color};" onclick="selectPersonality('${s.id}')">
-                <div style="flex-grow: 1;">
-                    <div class="card-title">${s.title}</div>
-                    <div class="card-main-val">${s.val}</div>
-                    <div class="card-sub-info">${s.info}</div>
-                </div>
-                <div class="card-icon-area"><i class="fa-solid ${s.icon}"></i></div>
-            </div>`;
-        container.innerHTML += card;
+    strategies.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'optimizer-card';
+        card.style.borderLeft = `5px solid ${s.color}`;
+        card.innerHTML = `
+            <div style="flex-grow: 1;">
+                <div class="card-title">${s.title}</div>
+                <div class="card-main-val">${s.val}</div>
+                <div class="card-sub-info">${s.info}</div>
+            </div>
+            <div class="card-icon-area"><i class="fa-solid ${s.icon}"></i></div>
+        `;
+        container.appendChild(card);
     });
 }
-
         fetch('Tricycle_Toda.geojson') 
             .then(res => res.json())
             .then(data => {
