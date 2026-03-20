@@ -552,31 +552,19 @@ function initializeUserSettings() {
 
         function calculatePublicFare(dist) {
     let total = 0;
+    let fareText = "";
     const isDiscounted = (userProfile !== 'regular');
-    
-    document.getElementById('fare-display').style.color = "#27ae60";
+    const display = document.getElementById('fare-display');
+    display.style.color = "#27ae60";
 
     if (currentVehicle === 'jeep') {
         const jeepType = document.getElementById('jeep-type').value;
-        let baseFare, perKm;
+        let baseFare = (jeepType === 'traditional') ? 14.00 : 17.00;
+        let perKm = (jeepType === 'traditional') ? 2.00 : 2.40;
 
-        if (jeepType === 'traditional') {
-            baseFare = 14.00;
-            perKm = 2.00;
-        } else { // modern
-            baseFare = 17.00;
-            perKm = 2.40;
-        }
-
-        if (dist <= 4) {
-            total = baseFare;
-        } else {
-            total = baseFare + (Math.ceil(dist - 4) * perKm);
-        }
-
-        if (isDiscounted) {
-            total *= 0.8;
-        }
+        total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
+        if (isDiscounted) total *= 0.8;
+        fareText = "₱ " + Math.ceil(total).toFixed(2);
     } 
     else if (currentVehicle === 'trike') {
         let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
@@ -584,69 +572,111 @@ function initializeUserSettings() {
         const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
         
         total = baseFare * (multipliers[triMode] || 1);
+        if (isDiscounted && triMode === 'regular') total *= 0.8;
+        fareText = "₱ " + Math.ceil(total).toFixed(2);
+    } 
+    else if (currentVehicle === 'uv') {
+        fareText = "₱ 60.00 (Fixed)"; 
+        if (originMarker && destMarker) {
+            const start = originMarker.getLatLng();
+            const end = destMarker.getLatLng();
 
-        if (isDiscounted && triMode === 'regular') {
-            total *= 0.8;
+            const getTerminalLatLng = (name) => {
+                if (!uvTerminalsData) return null;
+                const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
+                return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
+            };
+
+            const locSM = getTerminalLatLng("UV Express SM CSJDM");
+            const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
+            const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
+            const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
+
+            const isFromSM = locSM && start.distanceTo(locSM) < 500;
+            const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 500;
+            const isToFairview = (locFT && end.distanceTo(locFT) < 1000) || (locRob && end.distanceTo(locRob) < 1000);
+
+            if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
+            else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
         }
     } 
-
-       else if (currentVehicle === 'uv') {
-    let fareText = "₱ 60.00 (Fixed)"; 
-    const start = originMarker.getLatLng();
-    const end = destMarker.getLatLng();
-
-    // Helper to find a terminal by exact Name from your attribute table
-    const getTerminalLatLng = (name) => {
-        if (!uvTerminalsData) return null;
-        const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
-        return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
-    };
-
-    // Grab locations using your specific QGIS names
-    const locSM = getTerminalLatLng("UV Express SM CSJDM");
-    const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
-    const locFairviewTerraces = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
-    const locRobinsons = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
-
-    // Check if markers are near these points (within 500m for origin, 1km for destination)
-    const isFromSM = locSM && start.distanceTo(locSM) < 500;
-    const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 500;
-    
-    const isToFairview = (locFairviewTerraces && end.distanceTo(locFairviewTerraces) < 1000) || 
-                         (locRobinsons && end.distanceTo(locRobinsons) < 1000);
-
-    // Apply specific rates based on your terminal pairings
-    if (isFromSM && isToFairview) {
-        fareText = "₱ 40.00 - ₱ 50.00";
-    } 
-    else if (isFromStarmall && isToFairview) {
-        fareText = "₱ 60.00 - ₱ 70.00";
-    }
-
-    const display = document.getElementById('fare-display');
-    display.innerText = fareText;
-    display.style.color = "#27ae60";
-    return;
-}
-            
     else if (currentVehicle === 'bus') {
-        document.getElementById('fare-display').innerText = "Data Mapping...";
-        document.getElementById('fare-display').style.color = "#7f8c8d";
-        return;
+        fareText = "Data Mapping...";
+        display.style.color = "#7f8c8d";
     } 
     else if (currentVehicle === 'mrt') {
-        document.getElementById('fare-display').innerText = "Coming soon!";
-        document.getElementById('fare-display').style.color = "#FFD700";
-        return;
+        fareText = "Coming soon!";
+        display.style.color = "#FFD700";
     }
-   total = Math.ceil(total);
 
-    document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
+    display.innerText = fareText;
 }
-        function updateMONTE() {
+
+function calculatePublicFare(dist) {
+    let total = 0;
+    let fareText = "";
+    const isDiscounted = (userProfile !== 'regular');
+    const display = document.getElementById('fare-display');
+    display.style.color = "#27ae60";
+
+    if (currentVehicle === 'jeep') {
+        const jeepType = document.getElementById('jeep-type').value;
+        let baseFare = (jeepType === 'traditional') ? 14.00 : 17.00;
+        let perKm = (jeepType === 'traditional') ? 2.00 : 2.40;
+
+        total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
+        if (isDiscounted) total *= 0.8;
+        fareText = "₱ " + Math.ceil(total).toFixed(2);
+    } 
+    else if (currentVehicle === 'trike') {
+        let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
+        const triMode = document.getElementById('trike-mode').value;
+        const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
+        
+        total = baseFare * (multipliers[triMode] || 1);
+        if (isDiscounted && triMode === 'regular') total *= 0.8;
+        fareText = "₱ " + Math.ceil(total).toFixed(2);
+    } 
+    else if (currentVehicle === 'uv') {
+        fareText = "₱ 60.00 (Fixed)"; 
+        if (originMarker && destMarker) {
+            const start = originMarker.getLatLng();
+            const end = destMarker.getLatLng();
+
+            const getTerminalLatLng = (name) => {
+                if (!uvTerminalsData) return null;
+                const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
+                return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
+            };
+
+            const locSM = getTerminalLatLng("UV Express SM CSJDM");
+            const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
+            const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
+            const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
+
+            const isFromSM = locSM && start.distanceTo(locSM) < 500;
+            const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 500;
+            const isToFairview = (locFT && end.distanceTo(locFT) < 1000) || (locRob && end.distanceTo(locRob) < 1000);
+
+            if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
+            else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
+        }
+    } 
+    else if (currentVehicle === 'bus') {
+        fareText = "Data Mapping...";
+        display.style.color = "#7f8c8d";
+    } 
+    else if (currentVehicle === 'mrt') {
+        fareText = "Coming soon!";
+        display.style.color = "#FFD700";
+    }
+
+    display.innerText = fareText;
+}
+
+function updateMONTE() {
     if (!originMarker || !destMarker) return;
 
-    // 1. Wipe old routing data
     if (routingControl) {
         map.removeControl(routingControl);
         routingControl = null;
@@ -655,29 +685,23 @@ function initializeUserSettings() {
     const start = originMarker.getLatLng();
     const end = destMarker.getLatLng();
 
-    // 2. SPECIAL LOGIC FOR UV EXPRESS
     if (currentVehicle === 'uv' && currentMode === 'public') {
         const boardTerm = findNearestTerminal(start, uvTerminalsData);
         const dropTerm = findNearestTerminal(end, uvTerminalsData);
 
         if (boardTerm && dropTerm) {
-            // Draw Access/Egress (dotted lines)
             if (accessLine) map.removeLayer(accessLine);
             if (egressLine) map.removeLayer(egressLine);
 
             accessLine = L.polyline([start, boardTerm.coords], { color: 'blue', dashArray: '5, 10' }).addTo(map);
             egressLine = L.polyline([dropTerm.coords, end], { color: 'red', dashArray: '5, 10' }).addTo(map);
 
-            // Trigger the Fixed GeoJSON Route
             displayFixedUVRoute(boardTerm.name);
-            
-            // Fixed Fare for UV
-            calculatePublicFare(0, true); // Pass 'true' to indicate fixed UV fare
-            return; // EXIT HERE so standard routing doesn't run
+            calculatePublicFare(0); 
+            return; 
         }
     }
 
-    // 3. STANDARD ROUTING (For Jeep, Trike, and Private)
     let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
     let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
     const trafficMult = updateTrafficStatus();
@@ -700,7 +724,6 @@ function initializeUserSettings() {
             document.getElementById('public-fare-box').style.display = 'none';
             document.getElementById('private-dist-box').style.display = 'block';
             document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-            
             let arrival = new Date(); 
             arrival.setMinutes(arrival.getMinutes() + t);
             document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -936,24 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUVExpress(); // This will now work because map & uvLayerGroup exist
 
     // 6. Setup Geocoders
-    const gO = L.Control.geocoder({ 
-        defaultMarkGeocode: false,
-        placeholder: "Search Origin..." 
-    }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
-    if (oBox) {
-        oBox.innerHTML = '';
-        oBox.appendChild(gO.getContainer());
-    }
-
-    const gD = L.Control.geocoder({ 
-        defaultMarkGeocode: false,
-        placeholder: "Search Destination..." 
-    }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
-    if (dBox) {
-        dBox.innerHTML = '';
-        dBox.appendChild(gD.getContainer());
-    }
-
+   
     // 7. Start Background Loops
     fetchWeather();
     loadFunFacts();
