@@ -276,9 +276,6 @@
                 }).addTo(todaLayer);
             });
 
-// --- UV EXPRESS CORE LOGIC ---
-let uvLayerGroup = L.layerGroup().addTo(map);
-
 async function loadUVExpress() {
     try {
         const terminalResponse = await fetch('Uv Express/UV Terminal.geojson');
