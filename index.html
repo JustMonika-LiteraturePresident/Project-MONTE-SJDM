@@ -514,10 +514,13 @@ function initializeUserSettings() {
 }
        function updateTrafficStatus() {
     const now = new Date();
-    const hour = now.getHours(); // Simplified this line
+    const hour = now.getHours();
+    const seconds = now.getSeconds(); // Required for the 10-second rotation logic
+    
     let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
     let botText = "Roads look clear for San Jose del Monte right now. Perfect time for a trip!";
 
+    // 1. Time-based Traffic Logic
     if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
         status = { label: "Rush Hour", desc: "Heavy traffic on main roads", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
         botText = "Traffic is heavy right now due to peak travel hours. Main arteries like Quirino Highway may be congested.";
@@ -526,21 +529,37 @@ function initializeUserSettings() {
         botText = "Traffic is manageable. Travel times are roughly 30% longer than average.";
     }
 
-    if (window.currentRain) { // Added window. to ensure global scope check
+    // 2. Weather Impact
+    if (window.currentRain) {
         status.multiplier += 0.3;
         botText += " Rain detected—expect slower transit speeds and potential tricycle scarcity.";
     }
 
-    if (destMarker) {
+    // 3. Zone-specific Alerts (Project MONTE Geographic Awareness)
+    if (typeof destMarker !== 'undefined' && destMarker) {
         const dl = destMarker.getLatLng();
-        sjdmZones.forEach(zone => {
-            if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
-                botText = `Attention: You are heading toward the <b>${zone.name}</b>. ${zone.msg}`;
-            }
-        });
+        if (typeof sjdmZones !== 'undefined') {
+            sjdmZones.forEach(zone => {
+                if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
+                    botText = `Attention: You are heading toward the <b>${zone.name}</b>. ${zone.msg}`;
+                }
+            });
+        }
     }
 
-    // Update the UI if the elements exist
+    // 4. City Fact Rotation Logic (Every 10 seconds)
+    const factElement = document.getElementById('bot-fact-large');
+    if (factElement) {
+        if (seconds % 10 === 0 || factElement.innerText.includes("Analyzing")) {
+            if (typeof dynamicFunFacts !== 'undefined' && dynamicFunFacts.length > 0) {
+                const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
+                factElement.innerHTML = "<b>City Fact:</b> " + randomFact;
+            }
+        }
+    }
+
+    // 5. Unified UI Updates
+    // Side-panel / Compact UI
     const statusLabel = document.getElementById('traffic-label');
     const botDisplay = document.getElementById('bot-text');
     if (statusLabel) {
@@ -549,25 +568,19 @@ function initializeUserSettings() {
     }
     if (botDisplay) botDisplay.innerHTML = botText;
 
-    return status.multiplier; // CRITICAL: This allows OSRM to use the traffic data
-} // <--- THIS WAS MISSING
-
-    // ROTATION LOGIC: Only change the fact every 10 seconds
-    const factElement = document.getElementById('bot-fact-large');
-    if (seconds % 10 === 0 || factElement.innerText.includes("Analyzing")) {
-        const randomFact = dynamicFunFacts[Math.floor(Math.random() * dynamicFunFacts.length)];
-        factElement.innerHTML = "<b>City Fact:</b> " + randomFact;
-    }
-
-    // Update UI elements
-    document.getElementById('traffic-status').innerText = status.label;
-    document.getElementById('traffic-desc').innerText = status.desc;
-    document.getElementById('bot-message-large').innerHTML = botText;
-    document.getElementById('bot-traffic-analysis').innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
+    // Large Dashboard / Bot UI
+    if (document.getElementById('traffic-status')) document.getElementById('traffic-status').innerText = status.label;
+    if (document.getElementById('traffic-desc')) document.getElementById('traffic-desc').innerText = status.desc;
+    if (document.getElementById('bot-message-large')) document.getElementById('bot-message-large').innerHTML = botText;
     
+    const analysisElement = document.getElementById('bot-traffic-analysis');
+    if (analysisElement) {
+        analysisElement.innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
+    }
+    
+    // 6. Return the multiplier for OSRM routing calculations
     return status.multiplier;
 }
-
        function calculatePublicFare(dist) {
     const display = document.getElementById('fare-display');
     if (!display) return; // Safety check
