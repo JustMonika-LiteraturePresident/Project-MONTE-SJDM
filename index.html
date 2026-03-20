@@ -964,6 +964,25 @@ document.addEventListener('DOMContentLoaded', () => {
         map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
     }
 
+    // 3. Origin Geocoder with Placeholder
+var gO = L.Control.geocoder({ 
+    defaultMarkGeocode: false,
+    placeholder: "Origin goes here..." // Custom text
+}).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
+
+// Teleport to sidebar
+const oBox = document.getElementById('origin-box');
+if (oBox) oBox.appendChild(gO.getContainer());
+
+var gD = L.Control.geocoder({ 
+    defaultMarkGeocode: false,
+    placeholder: "Destination goes here..." // Custom text
+}).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
+
+// Teleport to sidebar
+const dBox = document.getElementById('dest-box');
+if (dBox) dBox.appendChild(gD.getContainer());
+
     // 4. ATTACH CLICK LISTENER (Must be inside here!)
     map.on('click', e => {
         clickCount++;
