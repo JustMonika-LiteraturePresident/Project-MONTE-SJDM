@@ -685,47 +685,70 @@ function calculatePublicFare(dist) {
 function updateMONTE() {
     if (!originMarker || !destMarker) return;
 
-    // Use a safety check before removing layers
+    // 1. THE KILL SWITCH: Force-remove all custom UV/Trike/Walking layers
     if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-    if (accessLine && map.hasLayer(accessLine)) map.removeLayer(accessLine);
-    if (egressLine && map.hasLayer(egressLine)) map.removeLayer(egressLine);
-    if (uvPathLayer && map.hasLayer(uvPathLayer)) map.removeLayer(uvPathLayer);
+    if (accessLine) { map.removeLayer(accessLine); accessLine = null; }
+    if (egressLine) { map.removeLayer(egressLine); egressLine = null; }
+    if (uvPathLayer) { map.removeLayer(uvPathLayer); uvPathLayer = null; }
+    
+    // Clear walking route if it exists
+    if (window.walkingRouteControl) {
+        map.removeControl(window.walkingRouteControl);
+        window.walkingRouteControl = null;
+    }
 
     const start = originMarker.getLatLng();
     const dest = destMarker.getLatLng();
 
-    // Reset these to null so they are fresh for this calculation
-    accessLine = null;
-    egressLine = null;
-
-    // UV EXPRESS LOGIC
-   if (currentVehicle === 'uv' && currentMode === 'public') {
+    // 2. UV EXPRESS LOGIC (Custom Polyline Logic)
+    if (currentVehicle === 'uv' && currentMode === 'public') {
         const boardTerm = findNearestTerminal(start, uvTerminalsData);
         const dropTerm = findNearestTerminal(dest, uvTerminalsData);
 
         if (boardTerm && dropTerm) {
-            // 1. Draw Home to Boarding Terminal
+            // Origin to Boarding Terminal (Blue Dotted)
             accessLine = L.polyline([start, boardTerm.coords], { color: '#3498db', weight: 4, dashArray: '5, 10' }).addTo(map);
             
-            // 2. Draw Drop-off Terminal to Destination (The missing link!)
+            // Drop-off Terminal to Destination (Red Dotted)
             egressLine = L.polyline([dropTerm.coords, dest], { color: '#e74c3c', weight: 4, dashArray: '5, 10' }).addTo(map);
-
-            displayFixedUVRoute(boardTerm.name);
             
-            // 3. Force the fare update
-            // We pass '0' because UV uses fixed terminal rates, not distance
-            calculatePublicFare(0); 
-            return; 
+            displayFixedUVRoute(boardTerm.name);
+            calculatePublicFare(0); // Trigger UV fixed fare logic
+            return; // EXIT: Do not let standard OSRM routing run
         }
     }
 
+    // 3. PREPARE OSRM ROUTING (Jeep, Trike, Moto, Private)
     let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
     let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
-    const trafficMult = updateTrafficStatus();
+    const trafficMult = typeof updateTrafficStatus === 'function' ? updateTrafficStatus() : 1;
 
+    let finalWaypoints = [start, dest]; 
+    
+    // Tricycle TODA Logic
+    if (currentVehicle === 'trike' && currentMode === 'public') {
+        const res = findNearestToda(start);
+        if (res && res.terminal) {
+            const terminalLatLng = L.latLng(
+                res.terminal.geometry.coordinates[1], 
+                res.terminal.geometry.coordinates[0]
+            );
+            
+            // Re-route vehicle to start from the TODA terminal
+            finalWaypoints = [terminalLatLng, dest];
+            
+            // Show the walking leg to the user
+            if (typeof checkNearestTodaUI === 'function') checkNearestTodaUI(start); 
+        }
+    }
+
+    // 4. EXECUTE UNIFIED OSRM ROUTING
     routingControl = L.Routing.control({
-        waypoints: [start, end],
-        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: routeProfile }),
+        waypoints: finalWaypoints,
+        router: L.Routing.osrmv1({ 
+            serviceUrl: 'https://router.project-osrm.org/route/v1', 
+            profile: routeProfile 
+        }),
         createMarker: () => null,
         lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] },
         addWaypoints: false
@@ -741,6 +764,7 @@ function updateMONTE() {
             document.getElementById('public-fare-box').style.display = 'none';
             document.getElementById('private-dist-box').style.display = 'block';
             document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+            
             let arrival = new Date(); 
             arrival.setMinutes(arrival.getMinutes() + t);
             document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -772,80 +796,6 @@ fetch('Uv Express/UV Route.geojson')
         .catch(err => console.error("Error loading UV GeoJSON:", err));
 }
 
-function updateMONTE() {
-    if (!originMarker || !destMarker) return;
-
-    // 1. Clear old routing
-    if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
-    }
-
-    const start = originMarker.getLatLng();
-    const dest = destMarker.getLatLng();
-
-    // 2. UV EXPRESS LOGIC (Fixed Route)
-    if (currentVehicle === 'uv' && currentMode === 'public') {
-        const boardTerm = findNearestTerminal(start, uvTerminalsData);
-        if (boardTerm) {
-            displayFixedUVRoute(boardTerm.name);
-            return; 
-        }
-    }
-
-    // 3. PREPARE ROUTING PARAMETERS
-    let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
-    let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
-    const trafficMult = typeof updateTrafficStatus === 'function' ? updateTrafficStatus() : 1;
-
-    // 4. DEFINE WAYPOINTS (Tricycle Terminal Logic)
-    let finalWaypoints = [start, dest]; 
-    
-    if (currentVehicle === 'trike' && currentMode === 'public') {
-        const res = findNearestToda(start);
-        if (res && res.terminal) {
-            const terminalLatLng = L.latLng(
-                res.terminal.geometry.coordinates[1], 
-                res.terminal.geometry.coordinates[0]
-            );
-            
-            // Re-route the vehicle: Terminal -> Destination
-            finalWaypoints = [terminalLatLng, dest];
-            
-            // Keep the "Walking Leg" UI active for the user
-            checkNearestTodaUI(start); 
-        }
-    }
-
-    // 5. EXECUTE UNIFIED ROUTING
-    routingControl = L.Routing.control({
-        waypoints: finalWaypoints,
-        router: L.Routing.osrmv1({ 
-            serviceUrl: 'https://router.project-osrm.org/route/v1', 
-            profile: routeProfile 
-        }),
-        createMarker: () => null,
-        lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] },
-        addWaypoints: false
-    }).on('routesfound', e => {
-        let d = e.routes[0].summary.totalDistance / 1000;
-        let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
-
-        if (currentMode === 'public') {
-            calculatePublicFare(d);
-            document.getElementById('public-fare-box').style.display = 'block';
-            document.getElementById('private-dist-box').style.display = 'none';
-        } else {
-            document.getElementById('public-fare-box').style.display = 'none';
-            document.getElementById('private-dist-box').style.display = 'block';
-            document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-            
-            let arrival = new Date(); 
-            arrival.setMinutes(arrival.getMinutes() + t);
-            document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        }
-    }).addTo(map);
-}
         function getDistance(lat1, lon1, lat2, lon2) {
             var R = 6371;
             var dLat = (lat2-lat1)*Math.PI/180;
