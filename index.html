@@ -907,26 +907,31 @@ function displayFixedUVRoute(terminalName) {
         function setSubVehicle(t, el) {
     currentVehicle = t;
 
-    // 1. UI Highlighting for buttons
+    // 1. UI Highlighting
     document.querySelectorAll('.v-type').forEach(btn => btn.classList.remove('active'));
     if (el) el.classList.add('active');
 
-    // 2. THE FIX: Explicitly add/remove the marker layers from the map
-    // Remove both first to be safe
+    // 2. THE CLEAN SWEEP: Remove ALL potential overlay layers first
     if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
     if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
+    
+    // Also clear any active route paths/lines from previous selections
+    if (uvPathLayer) { map.removeLayer(uvPathLayer); uvPathLayer = null; }
+    if (accessLine) { map.removeLayer(accessLine); accessLine = null; }
+    if (egressLine) { map.removeLayer(egressLine); egressLine = null; }
 
-    // Only add the one that matches the current selection
-    if (t === 'uv' && currentMode === 'public') {
-        uvLayerGroup.addTo(map);
-    } else if (t === 'trike' && currentMode === 'public') {
-        todaLayer.addTo(map);
+    // 3. ADD ONLY THE RELEVANT LAYER
+    if (currentMode === 'public') {
+        if (t === 'uv') {
+            uvLayerGroup.addTo(map);
+        } else if (t === 'trike') {
+            todaLayer.addTo(map);
+        }
     }
 
-    // 3. Refresh the routing
+    // 4. Refresh the routing engine
     updateMONTE();
 }
-
    
         // --- 5. SEARCH & ROUTING SETUP ---
 // --- 5. UTILITY FUNCTIONS ---
