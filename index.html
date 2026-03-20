@@ -55,6 +55,125 @@
         .sub-select { font-size: 0.7em; margin-top: 5px; width: 95%; border-radius: 4px; border: 1px solid #bbb; padding: 3px; font-weight: 600; }
         .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
         #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
+        /* --- 1. THE OPTIMIZER TOGGLE (Economic, Flash, Scout) --- */
+.journey-type-selector {
+    display: flex;
+    background: #f1f3f4; /* Light mode default, adjust for dark theme if needed */
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.type-btn {
+    flex: 1;
+    border: none;
+    padding: 10px 2px;
+    border-radius: 8px;
+    background: transparent;
+    color: #5f6368;
+    font-weight: 800;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Specific Active State Colors */
+#opt-econ.active { background: #27ae60; color: white; box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3); }
+#opt-flash.active { background: #e74c3c; color: white; box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3); }
+#opt-scout.active { background: #9b59b6; color: white; box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3); }
+
+/* --- 2. THE MAIN RESULT CARD --- */
+.opt-result-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    margin-top: 10px;
+    transition: all 0.3s ease;
+    border-left: 5px solid #ccc; /* Default gray, changed by JS */
+}
+
+.opt-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.opt-price {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #2c3e50;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- 3. THE TRANSFER GUIDE (Icons & Breadcrumbs) --- */
+.opt-path-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-top: 18px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    overflow-x: auto; /* For mobile scroll if path is long */
+}
+
+.opt-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Fixes sizing for your .png assets */
+.opt-step img {
+    height: 26px; 
+    width: auto;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1));
+}
+
+/* For FontAwesome icons (MRT, Walking, etc) */
+.opt-step i {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    color: #34495e;
+}
+
+.opt-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #7f8c8d;
+    text-transform: uppercase;
+}
+
+.opt-arrow {
+    color: #bdc3c7;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+/* --- 4. SIDEBAR ICON STYLING --- */
+.leaflet-sidebar-tabs ul li a[href="#optimizer-tab"] i {
+    color: #9b59b6; /* Project MONTE Purple */
+}
+
+/* Pulse effect for the active Optimizer tab icon */
+.leaflet-sidebar-tabs ul li.active a[href="#optimizer-tab"] {
+    background-color: #9b59b6 !important;
+}
+
+.leaflet-sidebar-tabs ul li.active a[href="#optimizer-tab"] i {
+    color: white !important;
+}
     </style>
 </head>
 <body>
@@ -65,6 +184,7 @@
         <div class="leaflet-sidebar-tabs">
             <ul role="tablist">
                 <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+                <li><a href="#optimizer-tab" role="tab"><i class="fa-diagram-project"></i></a></li>
                 <li><a href="#bot-tab" role="tab"><i class="fa fa-robot"></i></a></li>
                 <li><a href="#planner" role="tab"><i class="fa fa-route"></i></a></li>
                 <li><a href="#settings" role="tab"><i class="fa fa-rotate"></i></a></li>
@@ -144,6 +264,51 @@
                     </div>
                 </div>
             </div>
+
+            <div class="leaflet-sidebar-pane" id="optimizer-tab">
+    <h1 class="leaflet-sidebar-header">Route Optimizer<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+    <div style="padding: 15px;">
+        
+        <div class="journey-type-selector" style="margin-bottom: 20px;">
+            <button id="opt-econ" class="type-btn active" onclick="setOptMode('economic')">Economic</button>
+            <button id="opt-flash" class="type-btn" onclick="setOptMode('flash')">Flash</button>
+            <button id="opt-scout" class="type-btn" onclick="setOptMode('scout')">Scout</button>
+        </div>
+
+        <div id="optimizer-results-container">
+            <div class="bot-data-card" style="border-left: 5px solid #9b59b6; background: var(--card-bg); padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong id="opt-title" style="color: var(--text-main); text-transform: uppercase; font-size: 0.85em;">Economic Path</strong>
+                    <span id="opt-fare" style="font-size: 1.3em; font-weight: bold; color: #27ae60;">₱ 22.00</span>
+                </div>
+                
+                <p id="opt-desc" style="font-size: 0.85em; margin: 10px 0; color: var(--text-main); opacity: 0.8;">
+                    Optimizing transfers between local TODA and Jeepney lines.
+                </p>
+
+                <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 8px;">
+                    <div style="font-size: 0.7em; font-weight: bold; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Transfer Guide</div>
+                    <div id="opt-path" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div style="text-align: center;">
+                            <img src="Tricycle.png" style="width: 25px;" onerror="this.src='https://placehold.co/25?text=T'">
+                            <div style="font-size: 0.6em; font-weight: bold;">Trike</div>
+                        </div>
+                        <i class="fa fa-chevron-right" style="font-size: 0.7em; opacity: 0.3;"></i>
+                        <div style="text-align: center;">
+                            <img src="puj.png" style="width: 25px;" onerror="this.src='https://placehold.co/25?text=J'">
+                            <div style="font-size: 0.6em; font-weight: bold;">Jeep</div>
+                        </div>
+                        <i class="fa fa-chevron-right" style="font-size: 0.7em; opacity: 0.3;"></i>
+                        <div style="text-align: center;">
+                            <img src="bus.png" style="width: 25px;" onerror="this.src='https://placehold.co/25?text=B'">
+                            <div style="font-size: 0.6em; font-weight: bold;">Bus</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
             <div class="leaflet-sidebar-pane" id="bot-tab">
                 <h1 class="leaflet-sidebar-header">MONTE Intelligence<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
@@ -288,6 +453,47 @@ const uvIcon = L.icon({
             { name: "SJDM New City Hall", coords: [14.8236, 121.0475], radius: 0.3, msg: "Government center. Moderate pedestrian activity." },
             { name: "Bulacan State University - Sarmiento", coords: [14.8150, 121.0560], radius: 0.3, msg: "High student density. Peak hours: 7 AM and 5 PM." }
         ];
+
+        function setOptMode(mode) {
+    // UI Cleanup
+    document.querySelectorAll('#optimizer-tab .type-btn').forEach(btn => btn.classList.remove('active'));
+    const path = document.getElementById('opt-path');
+    const title = document.getElementById('opt-title');
+    const fare = document.getElementById('opt-fare');
+
+
+    if (mode === 'economic') {
+        document.getElementById('opt-econ').classList.add('active');
+        title.innerText = "Economic (Cheapest)";
+        fare.innerText = "₱ 22.00";
+                card.style.borderLeftColor = '#27ae60';
+        // Guide: Trike -> Jeep -> Bus
+        path.innerHTML = `
+            <img src="Tricycle.png" style="width:25px;"> <i class="fa fa-chevron-right"></i>
+            <img src="puj.png" style="width:25px;"> <i class="fa fa-chevron-right"></i>
+            <img src="bus.png" style="width:25px;">`;
+    } 
+    else if (mode === 'flash') {
+        document.getElementById('opt-flash').classList.add('active');
+        title.innerText = "Flash (Fastest)";
+        fare.innerText = "₱ 45.00";
+        card.style.borderLeftColor = '#e74c3c';
+        // Guide: UV Express -> MRT-7
+        path.innerHTML = `
+            <img src="UV.png" style="width:25px;"> <i class="fa fa-chevron-right"></i>
+            <i class="fa fa-train-subway" style="font-size:1.4em; color:#3498db;"></i>`;
+    }
+    else if (mode === 'scout') {
+        document.getElementById('opt-scout').classList.add('active');
+        title.innerText = "Scout (Shortest)";
+        fare.innerText = "₱ 30.00";
+         card.style.borderLeftColor = '#9b59b6';
+        // Guide: Walking -> Trike
+        path.innerHTML = `
+            <i class="fa fa-person-walking" style="font-size:1.4em;"></i> <i class="fa fa-chevron-right"></i>
+            <img src="Tricycle.png" style="width:25px;">`;
+    }
+}
 
         let dynamicFunFacts = ["SJDM: The Rising City."];
 
