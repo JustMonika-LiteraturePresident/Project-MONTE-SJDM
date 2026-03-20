@@ -12,176 +12,49 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 
     <style>
-       <style>
-    /* 1. CORE VARIABLES & THEMES */
-    :root { 
-        --bg-sidebar: #ffffff; 
-        --text-main: #333333; 
-        --card-bg: rgba(255, 255, 255, 0.8); /* Glassmorphism base */
-        --border-ui: #ddd; 
-        --accent-green: #00b894;
-        --accent-blue: #0984e3;
-        --accent-red: #ff7675; /* Vibrant Flash Red */
-        --glass-blur: blur(10px);
-    }
+        :root { --bg-sidebar: #ffffff; --text-main: #333333; --card-bg: #ffffff; --border-ui: #ddd; }
+        body.dark-theme { --bg-sidebar: #1a1a1a; --text-main: #e0e0e0; --card-bg: #2d2d2d; --border-ui: #444; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; transition: background 0.3s; }
+        html, body, #map { height: 100%; width: 100vw; overflow: hidden; }
+        #home-btn { position: absolute; top: 15px; left: 60px; z-index: 1100; padding: 10px 15px; background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .leaflet-sidebar-content { background: var(--bg-sidebar); color: var(--text-main); overflow-y: auto !important; height: 100%; }
+        
+        #clock-container { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0; border-bottom: 4px solid #3498db; }
+        #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
 
-    body.dark-theme { 
-        --bg-sidebar: #1a1a1a; 
-        --text-main: #e0e0e0; 
-        --card-bg: rgba(45, 45, 45, 0.7); /* Dark Glass */
-        --border-ui: #444; 
-    }
-
-    /* 2. BASE LAYOUT */
-    body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; transition: background 0.3s; }
-    html, body, #map { height: 100%; width: 100vw; overflow: hidden; }
-    
-    #home-btn { 
-        position: absolute; top: 15px; left: 60px; z-index: 1100; padding: 10px 15px; 
-        background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; 
-        cursor: pointer; font-weight: bold; transition: 0.2s;
-    }
-    #home-btn:hover { transform: scale(1.05); }
-
-    .leaflet-sidebar-content { 
-        background: var(--bg-sidebar); color: var(--text-main); 
-        overflow-y: auto !important; height: 100%; 
-    }
-
-    /* 3. CLOCK & BOT COMPONENTS */
-    #clock-container { 
-        background: #2c3e50; color: white; padding: 15px; border-radius: 12px; 
-        text-align: center; margin: 10px 0; border-bottom: 4px solid var(--accent-blue); 
-    }
-    #clock-time { font-size: 1.6em; font-weight: bold; font-family: monospace; display: block; }
-
-    .bot-status-bar { 
-        display: flex; align-items: center; gap: 10px; padding: 10px; 
-        background: rgba(46, 204, 113, 0.1); border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; 
-    }
-    .status-dot { width: 10px; height: 10px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-    
-    .bot-data-card { background: var(--card-bg); border: 1px solid var(--border-ui); padding: 15px; border-radius: 10px; backdrop-filter: var(--glass-blur); }
-
-    /* 4. THE WIPE & OPTIMIZER UI (Glass Design) */
-    .journey-type-selector {
-        display: flex; gap: 5px; background: var(--border-ui); padding: 4px; border-radius: 10px; margin-bottom: 15px;
-    }
-
-    .type-btn {
-        flex: 1; padding: 10px; border: none; border-radius: 7px; background: transparent;
-        color: var(--text-main); cursor: pointer; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; transition: 0.3s;
-    }
-
-    .type-btn.active { background: var(--card-bg); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-
-    #standard-options-view, #cutting-results-view { width: 100%; transition: all 0.4s ease-in-out; }
-
-    .optimizer-card {
-        display: flex; justify-content: space-between; align-items: center; padding: 18px; margin-bottom: 12px;
-        border-radius: 15px; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1);
-        border-left: 6px solid #ccc; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-        position: relative; overflow: hidden; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-    }
-
-    .optimizer-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-
-    .card-economic { border-left-color: var(--accent-green); }
-    .card-flash { border-left-color: var(--accent-red); }
-    .card-scout { border-left-color: var(--accent-blue); }
-
-    .card-title { font-weight: 900; font-size: 0.7rem; letter-spacing: 1.5px; margin-bottom: 4px; opacity: 0.6; text-transform: uppercase; }
-    .card-main-val { font-size: 1.5rem; font-weight: 800; }
-    .card-sub-info { font-size: 0.85rem; opacity: 0.8; margin-top: 3px; }
-
-    .card-icon-area i {
-        position: absolute; right: -10px; bottom: -15px; font-size: 4.5rem; opacity: 0.08; transform: rotate(-15deg); pointer-events: none;
-    }
-
-    /* 5. GENERAL UI (THEME, PROFILE, VEHICLES) */
-    .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: rgba(0,0,0,0.05); padding: 5px; border-radius: 10px; }
-    
-    .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-    .theme-btn.active { background: var(--accent-blue); color: white; }
-    .prof-btn.active { background: var(--accent-green); color: white; }
-
-    .mode-container { display: flex; gap: 8px; margin: 15px 0; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 12px; }
-    .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; transition: 0.2s; }
-    .mode-btn.active { background: #2c3e50; color: white; }
-
-    .vehicle-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-    .v-type.active {
-        background-color: var(--accent-green) !important; color: white !important; 
-        border: none !important; transform: scale(1.05); box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-    }
-    
-    .v-icon { width: 45px; height: 45px; object-fit: contain; margin-bottom: 8px; }
-    .v-label { font-size: 0.75em; font-weight: 700; }
-
-    /* 6. SEARCH & RESULTS */
-    .result-card { background: var(--card-bg); padding: 15px; border: 1px solid var(--border-ui); border-radius: 12px; margin-top: 15px; backdrop-filter: var(--glass-blur); }
-    #origin-box, #dest-box { margin-bottom: 12px; width: 100%; min-height: 48px; border-radius: 10px; }
-
-        /* --- New Profile Icons Styling --- */
-.prof-btn i {
-    margin-right: 5px;
-    font-size: 0.9em;
-    opacity: 0.8;
+        .v-type.active {
+    background-color: #27ae60 !important;
+    color: white !important;
+    border: 2px solid #1e8449 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
+        
+        /* Bot Tab Specific Styling */
+        .bot-status-bar { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; }
+        .status-dot { width: 10px; height: 10px; background: #27ae60; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        
+        #bot-message-large { font-size: 1.1em; font-weight: 500; color: #2980b9; margin: 15px 0; line-height: 1.5; }
+        .bot-data-card { background: var(--card-bg); border: 1px solid var(--border-ui); padding: 15px; border-radius: 10px; margin-top: 10px; }
+        #bot-fact-large { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #f1c40f; color: #555; font-style: italic; }
+        body.dark-theme #bot-fact-large { background: #333; color: #bbb; }
 
-/* --- Analog Clock Styling --- */
-.clock-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    background: #2c3e50;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    border-bottom: 4px solid var(--accent-blue);
-}
-
-.analog-clock {
-    width: 50px;
-    height: 50px;
-    border: 2px solid white;
-    border-radius: 50%;
-    position: relative;
-}
-
-.analog-clock .hand {
-    position: absolute;
-    bottom: 50%;
-    left: 50%;
-    background: white;
-    transform-origin: bottom;
-    border-radius: 4px;
-}
-
-.hour-hand { width: 3px; height: 12px; }
-.min-hand { width: 2px; height: 18px; }
-.sec-hand { width: 1px; height: 20px; background: var(--accent-red) !important; }
-
-.clock-digital-group {
-    text-align: left;
-}
-
-#clock-time {
-    font-size: 1.4em;
-    font-weight: bold;
-    font-family: 'Courier New', monospace;
-    color: white;
-}
-
-#clock-date {
-    font-size: 0.75em;
-    color: rgba(255,255,255,0.7);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-</style>
+        /* General UI components */
+        .theme-container, .profile-container { display: flex; gap: 5px; margin: 10px 0; background: #eee; padding: 4px; border-radius: 8px; }
+        body.dark-theme .theme-container, body.dark-theme .profile-container { background: #444; }
+        .theme-btn, .prof-btn { flex: 1; font-size: 0.75em; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .theme-btn.active { background: #3498db; color: white; }
+        .prof-btn.active { background: #27ae60; color: white; }
+        .mode-container { display: flex; gap: 8px; margin: 15px 0; background: #f0f0f0; padding: 6px; border-radius: 12px; }
+        .mode-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
+        .mode-btn.active { background: #2c3e50; color: white; }
+        .vehicle-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
+        .v-icon { width: 45px; height: 45px; object-fit: contain; margin-bottom: 8px; }
+        .v-label { font-size: 0.75em; font-weight: 700; margin-bottom: 5px; }
+        .sub-select { font-size: 0.7em; margin-top: 5px; width: 95%; border-radius: 4px; border: 1px solid #bbb; padding: 3px; font-weight: 600; }
+        .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
+        #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
     </style>
 </head>
 <body>
@@ -203,42 +76,16 @@
             <div class="leaflet-sidebar-pane" id="home">
                 <h1 class="leaflet-sidebar-header">MONTE Nav<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
                 
-               <div class="clock-row">
-    <div class="analog-clock">
-        <div id="hour" class="hand hour-hand"></div>
-        <div id="min" class="hand min-hand"></div>
-        <div id="sec" class="hand sec-hand"></div>
-    </div>
-    
-    <div class="clock-digital-group">
-        <span id="clock-time">00:00:00</span>
-        <div id="clock-date">Loading Date...</div>
-    </div>
-</div>
+                <div id="clock-container">
+                    <span id="clock-time">00:00:00</span>
+                    <span id="clock-date">Loading Date...</span>
+                </div>
 
-               <div class="profile-container">
-    <button class="prof-btn active" onclick="setProfile('regular')">
-        <i class="fa-solid fa-user"></i> Regular
-    </button>
-    <button class="prof-btn" onclick="setProfile('student')">
-        <i class="fa-solid fa-graduation-cap"></i> Student
-    </button>
-    <button class="prof-btn" onclick="setProfile('senior')">
-        <i class="fa-solid fa-wheelchair"></i> Senior/PWD
-    </button>
-</div>
-
-                <div class="journey-type-selector">...</div>
-
-<div id="standard-options-view">
-    <div class="public-private-toggle">...</div>
-    <div class="vehicle-icons">...</div>
-    <div class="fare-box">...</div>
-</div>
-
-<div id="cutting-results-view" style="display:none;">
-    <div id="optimizer-cards-container"></div>
-</div>
+                <div class="profile-container">
+                    <button class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
+                    <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
+                    <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
+                </div>
 
                 <div class="mode-container">
                     <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')"><span>Public</span></button>
@@ -444,31 +291,6 @@ const uvIcon = L.icon({
 
         let dynamicFunFacts = ["SJDM: The Rising City."];
 
-        function setJourneyType(type) {
-    currentJourneyType = type;
-
-    // 1. Toggle Button UI
-    document.getElementById('type-single').classList.toggle('active', type === 'single');
-    document.getElementById('type-cutting').classList.toggle('active', type === 'cutting');
-
-    // 2. Identify the DIVs to hide/show
-    const standardView = document.getElementById('standard-options-view');
-    const cuttingView = document.getElementById('cutting-results-view');
-    
-    // Check if you have a separate div for the Fare Display at the bottom
-    const fareDisplay = document.querySelector('.fare-display-container'); // Adjust selector as needed
-
-    if (type === 'cutting') {
-        standardView.style.display = 'none';
-        cuttingView.style.display = 'block';
-        if (fareDisplay) fareDisplay.style.display = 'none'; // Hide individual fare in cutting mode
-        renderOptimizerCards(); 
-    } else {
-        standardView.style.display = 'block';
-        cuttingView.style.display = 'none';
-        if (fareDisplay) fareDisplay.style.display = 'block'; // Show it back for single trips
-    }
-}
         fetch('Tricycle_Toda.geojson') 
             .then(res => res.json())
             .then(data => {
@@ -1115,47 +937,21 @@ function goHome() {
 }
 
 function updateClock() {
-    const now = new Date();
     const timeEl = document.getElementById('clock-time');
     const dateEl = document.getElementById('clock-date');
+    const now = new Date();
 
-    // 1. Digital Text Update
     if (timeEl) timeEl.innerText = now.toLocaleTimeString();
-    if (dateEl) {
-        dateEl.innerText = now.toLocaleDateString(undefined, { 
-            weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' 
-        });
-    }
-
-    // 2. Analog Hands Rotation
-    const seconds = now.getSeconds();
-    const minutes = now.getMinutes();
-    const hours = now.getHours();
-
-    const secDeg = (seconds / 60) * 360;
-    const minDeg = (minutes / 60) * 360 + (seconds / 60) * 6;
-    const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30;
-
-    const sHand = document.getElementById('sec');
-    const mHand = document.getElementById('min');
-    const hHand = document.getElementById('hour');
-
-    if (sHand) sHand.style.transform = `translateX(-50%) rotate(${secDeg}deg)`;
-    if (mHand) mHand.style.transform = `translateX(-50%) rotate(${minDeg}deg)`;
-    if (hHand) hHand.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
-
-    // 3. Pre-existing Auto-Theme Logic
+    if (dateEl) dateEl.innerText = now.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+    
+    // Check auto-theme
     const activeBtn = document.querySelector('.theme-btn.active');
     if (activeBtn && activeBtn.id === 't-auto' && typeof setTheme === 'function') {
         setTheme('auto');
     }
-
-    // 4. Pre-existing Traffic Logic
+    
     if (typeof updateTrafficStatus === 'function') updateTrafficStatus();
 }
-
-// Ensure the interval is running
-setInterval(updateClock, 1000);
 
 // --- 6. INITIALIZATION BLOCK ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -1164,8 +960,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!map) {
         map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
     }
-
-    setJourneyType('single');
 
     // 3. Origin Geocoder with Placeholder
 var gO = L.Control.geocoder({ 
