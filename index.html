@@ -257,7 +257,17 @@ map = L.map('map', {
 var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 uvLayerGroup.addTo(map);
 todaLayer.addTo(map);
-        
+
+   var currentRain = false; // Fixes the Traffic Status error
+var uvTerminalsData = null; 
+
+// Define uvIcon here so loadUVExpress can use it
+const uvIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', 
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
         const sjdmZones = [
             { name: "SM San Jose / Mall Zone", coords: [14.8015, 121.0471], radius: 0.5, msg: "Heavy foot traffic near the mall area. Watch for jeepney queues." },
             { name: "Muzon Crossroads", coords: [14.8115, 121.0035], radius: 0.4, msg: "High congestion at Muzon intersection. Expect slow movement." },
@@ -730,25 +740,30 @@ function initializeUserSettings() {
             updateMONTE();
         }
 
-        function setSubVehicle(t, el) {
+       function setSubVehicle(t, el) {
     currentVehicle = t;
     document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
     el.classList.add('active');
 
-    // Clear previous auxiliary layers
+    // 1. CLEAR PREVIOUS LAYERS (This prevents the "shared data" feel)
+    if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
+    if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
     if (window.accessLine) map.removeLayer(window.accessLine);
     if (walkingRouteControl) map.removeControl(walkingRouteControl);
 
+    // 2. ACTIVATE SELECTED LAYER
     if (t === 'trike' && currentMode === 'public') { 
         todaLayer.addTo(map); 
         if(originMarker) checkNearestTodaUI(originMarker.getLatLng());
-    } else if (t === 'uv' && currentMode === 'public') {
-        if(originMarker) showUVAccessLeg(originMarker.getLatLng()); // Trigger immediately on selection [cite: 409]
-    } else {
-        map.removeLayer(todaLayer);
-    }
+    } 
+    else if (t === 'uv' && currentMode === 'public') {
+        uvLayerGroup.addTo(map); // Now only UV terminals will show
+        if(originMarker) showUVAccessLeg(originMarker.getLatLng());
+    } 
+
     updateMONTE();
 }
+   
         // --- 5. SEARCH & ROUTING SETUP ---
 // --- 5. UTILITY FUNCTIONS ---
 function goHome() { 
