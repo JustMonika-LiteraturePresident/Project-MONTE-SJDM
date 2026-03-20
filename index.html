@@ -777,8 +777,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Restore User Settings
     initializeUserSettings();
     
-    loadUVExpress(); 
-    
     // 2. Clear Search Boxes to prevent duplicates
     const oBox = document.getElementById('origin-box');
     const dBox = document.getElementById('dest-box');
@@ -802,6 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Start Background Loops
     fetchWeather();
     loadFunFacts();
+    loadUVExpress(); 
     setInterval(updateClock, 1000);
 
     console.log("MONTE: System fully sealed and initialized.");
