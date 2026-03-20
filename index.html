@@ -279,31 +279,25 @@
 async function loadUVExpress() {
     try {
         const terminalResponse = await fetch('Uv Express/UV Terminal.geojson');
-        const routeResponse = await fetch('Uv Express/UV Route.geojson');
-
-        if (!terminalResponse.ok) throw new Error("UV Files not found");
-
+        if (!terminalResponse.ok) throw new Error("UV GeoJSON not found");
+        
         uvTerminalsData = await terminalResponse.json();
-        const routeData = await routeResponse.json();
 
-        // 1. Add the Route (Red Line)
-        L.geoJSON(routeData, {
-            style: { color: '#e74c3c', weight: 5, opacity: 0.8 }
-        }).addTo(uvLayerGroup);
-
-        // 2. Add Terminals (Blue Circles)
-        L.geoJSON(uvTerminalsData, {
-            pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-                radius: 8, fillColor: "#2980b9", color: "#fff", weight: 2, fillOpacity: 0.8
-            }),
-            onEachFeature: (feature, layer) => {
-                layer.bindPopup("<b>UV Terminal:</b> " + feature.properties.name);
-            }
-        }).addTo(uvLayerGroup);
-
-        console.log("MONTE: UV Express layers loaded.");
-    } catch (err) {
-        console.error("UV Load Error:", err);
+        // The Fix: Check if 'map' exists before adding the layer
+        if (typeof map !== 'undefined' && map !== null) {
+            L.geoJSON(uvTerminalsData, {
+                pointToLayer: (feature, latlng) => {
+                    return L.marker(latlng, { icon: uvIcon });
+                },
+                onEachFeature: (feature, layer) => {
+                    if (feature.properties && feature.properties.Name) {
+                        layer.bindPopup(`<b>${feature.properties.Name}</b><br>UV Express Terminal`);
+                    }
+                }
+            }).addTo(map); // This is where 'addLayer' is called internally
+        }
+    } catch (error) {
+        console.error("Error loading UV Express data:", error);
     }
 }
 
