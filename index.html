@@ -701,8 +701,8 @@ function initializeUserSettings() {
                 const group = new L.FeatureGroup([window.accessLine, window.uvPathLayer, window.egressLine]);
                 map.fitBounds(group.getBounds(), { padding: [50, 50] });
             }
-        });
-}
+       
+
             let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
             let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
             const trafficMult = updateTrafficStatus();
