@@ -653,28 +653,29 @@ function initializeUserSettings() {
     const userOrigin = originMarker.getLatLng();
     const userDest = destMarker.getLatLng();
 
-    // 1. FIND THE HUBS
-    const boardingTerminal = findNearestTerminal(userOrigin, uvTerminalsData);
-    const alightingTerminal = findNearestTerminal(userDest, uvTerminalsData);
+    // 1. Find the Nearest Hubs
+    const boardTerm = findNearestTerminal(userOrigin, uvTerminalsData);
+    const dropTerm = findNearestTerminal(userDest, uvTerminalsData);
 
-    // 2. DRAW ACCESS & EGRESS (Dotted lines for walking/trike)
+    // 2. Clear previous "Ghost" lines
     if (window.accessLine) map.removeLayer(window.accessLine);
     if (window.egressLine) map.removeLayer(window.egressLine);
 
-    window.accessLine = L.polyline([userOrigin, boardingTerminal.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
-    window.egressLine = L.polyline([alightingTerminal.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
+    // 3. Draw Dotted Access Legs (Walking/Trike)
+    window.accessLine = L.polyline([userOrigin, boardTerm.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
+    window.egressLine = L.polyline([dropTerm.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
 
-    // 3. DRAW MAIN LINE (The actual UV journey)
+    // 4. THE FIX: Force the Routing Machine to stay between Terminals
     if (routingControl) map.removeControl(routingControl);
     
     routingControl = L.Routing.control({
         waypoints: [
-            L.latLng(boardingTerminal.coords), // Start at boarding hub
-            L.latLng(alightingTerminal.coords) // End at drop-off hub
+            L.latLng(boardTerm.coords), // Boarding Hub
+            L.latLng(dropTerm.coords)   // Alighting Hub
         ],
-        lineOptions: { styles: [{ color: 'green', weight: 6 }] },
+        lineOptions: { styles: [{ color: '#27ae60', weight: 7, opacity: 0.8 }] },
         addWaypoints: false,
-        createMarker: function() { return null; } // Hide the default 'A' and 'B' markers
+        createMarker: () => null // Hides the default A/B markers at terminals
     }).addTo(map);
 }
             let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
