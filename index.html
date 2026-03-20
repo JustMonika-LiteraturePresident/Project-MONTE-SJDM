@@ -772,19 +772,41 @@ function updateMONTE() {
         const boardTerm = findNearestTerminal(start, uvTerminalsData);
         if (boardTerm) {
             displayFixedUVRoute(boardTerm.name);
-            // We exit here because UV doesn't use the standard OSRM router
             return; 
         }
     }
 
-    // 3. STANDARD ROUTING (Jeep, Trike, Private)
+    // 3. PREPARE ROUTING PARAMETERS
     let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
     let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
     const trafficMult = typeof updateTrafficStatus === 'function' ? updateTrafficStatus() : 1;
 
+    // 4. DEFINE WAYPOINTS (Tricycle Terminal Logic)
+    let finalWaypoints = [start, dest]; 
+    
+    if (currentVehicle === 'trike' && currentMode === 'public') {
+        const res = findNearestToda(start);
+        if (res && res.terminal) {
+            const terminalLatLng = L.latLng(
+                res.terminal.geometry.coordinates[1], 
+                res.terminal.geometry.coordinates[0]
+            );
+            
+            // Re-route the vehicle: Terminal -> Destination
+            finalWaypoints = [terminalLatLng, dest];
+            
+            // Keep the "Walking Leg" UI active for the user
+            checkNearestTodaUI(start); 
+        }
+    }
+
+    // 5. EXECUTE UNIFIED ROUTING
     routingControl = L.Routing.control({
-        waypoints: [start, dest],
-        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: routeProfile }),
+        waypoints: finalWaypoints,
+        router: L.Routing.osrmv1({ 
+            serviceUrl: 'https://router.project-osrm.org/route/v1', 
+            profile: routeProfile 
+        }),
         createMarker: () => null,
         lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] },
         addWaypoints: false
@@ -800,6 +822,7 @@ function updateMONTE() {
             document.getElementById('public-fare-box').style.display = 'none';
             document.getElementById('private-dist-box').style.display = 'block';
             document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+            
             let arrival = new Date(); 
             arrival.setMinutes(arrival.getMinutes() + t);
             document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
