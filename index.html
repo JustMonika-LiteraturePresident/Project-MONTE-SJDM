@@ -579,7 +579,7 @@ function initializeUserSettings() {
     if (bta) bta.innerHTML = `<i class="fa fa-chart-line"></i> Traffic Factor: ${status.multiplier.toFixed(1)}x Impact`;
     
     // 6. Final Return (The ONLY one allowed)
-    // return status.multiplier;
+    return status.multiplier;
 }
        function calculatePublicFare(dist) {
     const display = document.getElementById('fare-display');
@@ -662,7 +662,11 @@ function initializeUserSettings() {
         display.style.color = ""; 
     }
 }
-        
+        // --- 4. THE MAIN ROUTING ENGINE ---
+function updateMONTE() {
+    // 0. Safety Check: Only run if both markers exist
+    if (!originMarker || !destMarker) return;
+
     // 1. THE KILL SWITCH: Clear all previous routing layers
     if (routingControl) { map.removeControl(routingControl); routingControl = null; }
     if (accessLine) { map.removeLayer(accessLine); accessLine = null; }
@@ -687,17 +691,19 @@ function initializeUserSettings() {
             
             displayFixedUVRoute(boardTerm.name);
             
-            // FIX: Ensure the UI box is visible before updating the text
             const fareBox = document.getElementById('public-fare-box');
             if (fareBox) fareBox.style.display = 'block';
             
             calculatePublicFare(0); 
-            return; 
+            return; // This is now LEGAL because it is inside the function!
         }
     }
+
     // 3. STANDARD ROUTING (Jeep, Trike, Private)
     let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
     let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
+    
+    // Call your traffic function to get the multiplier
     const trafficMult = typeof updateTrafficStatus === 'function' ? updateTrafficStatus() : 1;
 
     let finalWaypoints = [start, dest]; 
@@ -723,19 +729,25 @@ function initializeUserSettings() {
 
         if (currentMode === 'public') {
             calculatePublicFare(d);
-            document.getElementById('public-fare-box').style.display = 'block';
-            document.getElementById('private-dist-box').style.display = 'none';
+            const pfb = document.getElementById('public-fare-box');
+            const pdb = document.getElementById('private-dist-box');
+            if (pfb) pfb.style.display = 'block';
+            if (pdb) pdb.style.display = 'none';
         } else {
-            document.getElementById('public-fare-box').style.display = 'none';
-            document.getElementById('private-dist-box').style.display = 'block';
-            document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
-            let arrival = new Date(); 
-            arrival.setMinutes(arrival.getMinutes() + t);
-            document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const pfb = document.getElementById('public-fare-box');
+            const pdb = document.getElementById('private-dist-box');
+            if (pfb) pfb.style.display = 'none';
+            if (pdb) {
+                pdb.style.display = 'block';
+                document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+                let arrival = new Date(); 
+                arrival.setMinutes(arrival.getMinutes() + t);
+                document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
         }
     }).addTo(map);
 }
-
+        
 function displayFixedUVRoute(terminalName) {
     if (uvPathLayer) map.removeLayer(uvPathLayer);
 
