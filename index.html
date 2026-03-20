@@ -650,33 +650,53 @@ function initializeUserSettings() {
                 if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
             }
            if (currentVehicle === 'uv' && originMarker && destMarker) {
+    // 1. CLEAR STANDARD ROUTER (No more car-logic fighting)
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
+
     const userOrigin = originMarker.getLatLng();
     const userDest = destMarker.getLatLng();
 
-    // 1. Find the Nearest Hubs
+    // 2. FIND NEAREST TERMINALS
     const boardTerm = findNearestTerminal(userOrigin, uvTerminalsData);
     const dropTerm = findNearestTerminal(userDest, uvTerminalsData);
 
-    // 2. Clear previous "Ghost" lines
+    // 3. DRAW DOTTED LEGS (Access & Egress)
     if (window.accessLine) map.removeLayer(window.accessLine);
     if (window.egressLine) map.removeLayer(window.egressLine);
 
-    // 3. Draw Dotted Access Legs (Walking/Trike)
     window.accessLine = L.polyline([userOrigin, boardTerm.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
     window.egressLine = L.polyline([dropTerm.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
 
-    // 4. THE FIX: Force the Routing Machine to stay between Terminals
-    if (routingControl) map.removeControl(routingControl);
-    
-    routingControl = L.Routing.control({
-        waypoints: [
-            L.latLng(boardTerm.coords), // Boarding Hub
-            L.latLng(dropTerm.coords)   // Alighting Hub
-        ],
-        lineOptions: { styles: [{ color: '#27ae60', weight: 7, opacity: 0.8 }] },
-        addWaypoints: false,
-        createMarker: () => null // Hides the default A/B markers at terminals
-    }).addTo(map);
+    function displayFixedUVRoute(startName, endName) {
+    if (window.uvPathLayer) map.removeLayer(window.uvPathLayer);
+
+    fetch('UV Route.geojson')
+        .then(res => res.json())
+        .then(data => {
+            window.uvPathLayer = L.geoJSON(data, {
+                style: { color: '#27ae60', weight: 6, opacity: 0.9 },
+                filter: function(feature) {
+                    // This logic checks if the route name matches your start and end points
+                    const routeName = feature.properties.Name;
+                    
+                    if (startName.includes("SM") && routeName.includes("SM")) {
+                        return true; 
+                    }
+                    if (startName.includes("Starmall") && routeName.includes("Starmall")) {
+                        return true;
+                    }
+                    return false;
+                }
+            }).addTo(map);
+            
+            if (window.uvPathLayer.getLayers().length > 0) {
+                const group = new L.FeatureGroup([window.accessLine, window.uvPathLayer, window.egressLine]);
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+        });
 }
             let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
             let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
