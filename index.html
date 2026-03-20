@@ -238,6 +238,7 @@ const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x
 });
 
 // 2. GLOBAL VARIABLES
+var clickCount = 0; // Initialize here
 var sjdm = [14.8114, 121.0450];
 var map; 
 var originMarker, destMarker, routingControl, walkingRouteControl;
@@ -284,7 +285,7 @@ todaLayer.addTo(map);
 
 async function loadUVExpress() {
     try {
-        const terminalResponse = await fetch('Uv Express/UV Terminal.geojson');
+        const terminalResponse = await fetch('Uv Express/UV Terminals.geojson');
         if (!terminalResponse.ok) throw new Error("UV GeoJSON not found");
         
         uvTerminalsData = await terminalResponse.json();
@@ -719,13 +720,6 @@ function initializeUserSettings() {
     updateMONTE();
 }
 
-        map.on('click', e => {
-            clickCount++;
-            if (clickCount === 1) setupMarker(e.latlng, true);
-            else if (clickCount === 2) setupMarker(e.latlng, false);
-            else resetMarkers();
-        });
-
         function switchMainMode(m) {
             currentMode = m;
             document.getElementById('mode-public').className = m==='public'?'mode-btn active':'mode-btn';
@@ -780,40 +774,57 @@ function updateClock() {
 
 // --- 6. INITIALIZATION BLOCK ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Map (Make sure this runs!)
+    // 1. Define UI Elements
+    const oBox = document.getElementById('origin-box');
+    const dBox = document.getElementById('dest-box');
+
+    // 2. Initialize Map (If not already initialized)
     if (!map) {
         map = L.map('map', { zoomControl: false, layers: [lightTiles] }).setView(sjdm, 13);
     }
 
-    // 2. NOW add your layer groups to the map
+    // 3. Add Layer Groups to Map
     uvLayerGroup.addTo(map);
     todaLayer.addTo(map);
 
-    // 3. The rest of your setup
-    initializeUserSettings();
-    loadUVExpress();
+    // 4. ATTACH CLICK LISTENER (Must be inside here!)
+    map.on('click', e => {
+        clickCount++;
+        if (clickCount === 1) setupMarker(e.latlng, true);
+        else if (clickCount === 2) setupMarker(e.latlng, false);
+        else resetMarkers();
+    });
 
-    // 3. Setup Origin Geocoder
+    // 5. Restore User Settings & Load Data
+    initializeUserSettings();
+    loadUVExpress(); // This will now work because map & uvLayerGroup exist
+
+    // 6. Setup Geocoders
     const gO = L.Control.geocoder({ 
         defaultMarkGeocode: false,
         placeholder: "Search Origin..." 
     }).on('markgeocode', e => setupMarker(e.geocode.center, true)).addTo(map);
-    if (oBox) oBox.appendChild(gO.getContainer());
+    if (oBox) {
+        oBox.innerHTML = '';
+        oBox.appendChild(gO.getContainer());
+    }
 
-    // 4. Setup Destination Geocoder
     const gD = L.Control.geocoder({ 
         defaultMarkGeocode: false,
         placeholder: "Search Destination..." 
     }).on('markgeocode', e => setupMarker(e.geocode.center, false)).addTo(map);
-    if (dBox) dBox.appendChild(gD.getContainer());
-    
-    // 5. Start Background Loops
+    if (dBox) {
+        dBox.innerHTML = '';
+        dBox.appendChild(gD.getContainer());
+    }
+
+    // 7. Start Background Loops
     fetchWeather();
     loadFunFacts();
     setInterval(updateClock, 1000);
 
-    console.log("MONTE: System fully sealed and initialized.");
-}); 
+    console.log("MONTE: System fully initialized and event listeners attached.");
+});
     </script>
 </body>
 </html>
