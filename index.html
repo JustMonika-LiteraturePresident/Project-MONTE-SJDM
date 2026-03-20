@@ -809,33 +809,30 @@ function initializeUserSettings() {
             updateMONTE();
         }
 
-      function setSubVehicle(t, el) {
+         function setSubVehicle(t, el) {
     currentVehicle = t;
-    
-    // UI Active State
     document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
     el.classList.add('active');
 
-    // 1. CLEAR EVERYTHING (The "Wipe" for Project MONTE)
-    if (uvPathLayer) map.removeLayer(uvPathLayer);
-    if (accessLine) map.removeLayer(accessLine);
-    if (egressLine) map.removeLayer(egressLine);
-    if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
-    }
+    // 1. CLEAR PREVIOUS LAYERS (This prevents the "shared data" feel)
+    if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
+    if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
+    if (window.accessLine) map.removeLayer(window.accessLine);
+    if (walkingRouteControl) map.removeControl(walkingRouteControl);
 
-    // 2. TOGGLE TERMINAL VISIBILITY
-    if (t === 'uv') {
-        uvLayerGroup.addTo(map);
-        if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
-    } else if (t === 'trike') {
-        todaLayer.addTo(map);
-        if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
-    }
+    // 2. ACTIVATE SELECTED LAYER
+    if (t === 'trike' && currentMode === 'public') { 
+        todaLayer.addTo(map); 
+        if(originMarker) checkNearestTodaUI(originMarker.getLatLng());
+    } 
+    else if (t === 'uv' && currentMode === 'public') {
+        uvLayerGroup.addTo(map); // Now only UV terminals will show
+        if(originMarker) showUVAccessLeg(originMarker.getLatLng());
+    } 
 
     updateMONTE();
 }
+
    
         // --- 5. SEARCH & ROUTING SETUP ---
 // --- 5. UTILITY FUNCTIONS ---
