@@ -567,18 +567,36 @@ function initializeUserSettings() {
     } 
 
        else if (currentVehicle === 'uv') {
-    let fareText = "Distance-based"; // Default fallback
+    let fareText = "₱ 60.00 (Fixed)"; 
+    const start = originMarker.getLatLng();
+    const end = destMarker.getLatLng();
+
+    // Helper to find a terminal by exact Name from your attribute table
+    const getTerminalLatLng = (name) => {
+        if (!uvTerminalsData) return null;
+        const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
+        return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
+    };
+
+    // Grab locations using your specific QGIS names
+    const locSM = getTerminalLatLng("UV Express SM CSJDM");
+    const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
+    const locFairviewTerraces = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
+    const locRobinsons = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
+
+    // Check if markers are near these points (within 500m for origin, 1km for destination)
+    const isFromSM = locSM && start.distanceTo(locSM) < 500;
+    const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 500;
     
-    // Check specific terminal routes
-    if (origin === 'SM Tungko' && destination === 'Fairview') {
+    const isToFairview = (locFairviewTerraces && end.distanceTo(locFairviewTerraces) < 1000) || 
+                         (locRobinsons && end.distanceTo(locRobinsons) < 1000);
+
+    // Apply specific rates based on your terminal pairings
+    if (isFromSM && isToFairview) {
         fareText = "₱ 40.00 - ₱ 50.00";
     } 
-    else if (origin === 'Starmall SJDM' && destination === 'Fairview') {
+    else if (isFromStarmall && isToFairview) {
         fareText = "₱ 60.00 - ₱ 70.00";
-    } 
-    else {
-        // Fallback for other UV routes if needed
-        fareText = "₱ 60.00 (Fixed)";
     }
 
     const display = document.getElementById('fare-display');
