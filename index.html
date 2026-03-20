@@ -55,55 +55,12 @@
         .sub-select { font-size: 0.7em; margin-top: 5px; width: 95%; border-radius: 4px; border: 1px solid #bbb; padding: 3px; font-weight: 600; }
         .result-card { background: var(--card-bg); padding: 12px; border: 1px solid var(--border-ui); border-radius: 8px; margin-top: 10px; color: var(--text-main); }
         #origin-box, #dest-box { margin-bottom: 10px; width: 100%; min-height: 45px; }
-
-        .journey-type-selector {
-    display: flex;
-    gap: 5px;
-    background: var(--border-ui);
-    padding: 3px;
-    border-radius: 8px;
-}
-
-.type-btn {
-    flex: 1;
-    border: none;
-    padding: 8px;
-    border-radius: 6px;
-    background: transparent;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.85em;
-    color: var(--text-main);
-    transition: 0.2s;
-}
-
-.type-btn.active {
-    background: var(--card-bg);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.optimizer-card {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    background: var(--card-bg);
-    margin-bottom: 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border-ui);
-    cursor: pointer;
-}
-
-.card-title { font-size: 0.7em; font-weight: bold; text-transform: uppercase; opacity: 0.6; }
-.card-main-val { font-size: 1.2em; font-weight: bold; }
-.card-sub-info { font-size: 0.8em; opacity: 0.7; }
-.card-icon-area { font-size: 1.4em; opacity: 0.2; padding-left: 10px; }
     </style>
 </head>
 <body>
 
     <button id="home-btn" onclick="goHome()">🏠 Return to SJDM</button>
 
-<body>
     <div id="sidebar" class="leaflet-sidebar collapsed">
         <div class="leaflet-sidebar-tabs">
             <ul role="tablist">
@@ -116,100 +73,77 @@
         </div>
 
         <div class="leaflet-sidebar-content">
-            
-            <div class="leaflet-sidebar-pane active" id="home">
+            <div class="leaflet-sidebar-pane" id="home">
                 <h1 class="leaflet-sidebar-header">MONTE Nav<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
+                
                 <div id="clock-container">
                     <span id="clock-time">00:00:00</span>
                     <span id="clock-date">Loading Date...</span>
                 </div>
 
-               <div class="profile-container">
-    <button class="prof-btn active" id="p-reg" onclick="setProfile('regular', this)">
-        <i class="fa-solid fa-user"></i> Regular
-    </button>
-    <button class="prof-btn" id="p-stu" onclick="setProfile('student', this)">
-        <i class="fa-solid fa-graduation-cap"></i> Student
-    </button>
-    <button class="prof-btn" id="p-sen" onclick="setProfile('senior', this)">
-        <i class="fa-solid fa-person-cane"></i> Senior/PWD
-    </button>
-</div>
+                <div class="profile-container">
+                    <button class="prof-btn active" onclick="setProfile('regular', this)">Regular</button>
+                    <button class="prof-btn" onclick="setProfile('student', this)">Student</button>
+                    <button class="prof-btn" onclick="setProfile('senior', this)">Senior/PWD</button>
+                </div>
 
-<div class="journey-type-selector" style="margin-top: 10px;">
-    <button id="type-single" class="type-btn active" onclick="setJourneyType('single')">Single Trip</button>
-    <button id="type-cutting" class="type-btn" onclick="setJourneyType('cutting')">Cutting Trip</button>
-</div>
+                <div class="mode-container">
+                    <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')"><span>Public</span></button>
+                    <button id="mode-private" class="mode-btn" onclick="switchMainMode('private')"><span>Private</span></button>
+                </div>
 
-<hr style="border: 0; border-top: 1px solid var(--border-ui); margin: 15px 0;">
+                <div id="public-selector" class="vehicle-selector">
+                    <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
+                        <img src="puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
+                        <select id="jeep-type" class="sub-select" onchange="updateMONTE()">
+                            <option value="traditional">Trad. Jeep</option>
+                            <option value="modern">Modern Jeep</option>
+                        </select>
+                    </div>
+                    <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
+                        <img src="bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
+                        <select id="bus-type" class="sub-select" onchange="updateMONTE()">
+                            <option value="regular">Regular</option>
+                            <option value="p2p">P2P Bus</option>
+                        </select>
+                    </div>
+                    <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
+                        <img src="Tricycle.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
+                        <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
+                            <option value="regular">Regular (Shared)</option>
+                            <option value="special-1">Special (1p)</option>
+                            <option value="special-2">Special (2p)</option>
+                            <option value="special-3">Special (3p)</option>
+                        </select>
+                    </div>
+                    <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
+                        <img src="UV.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=UV'">
+                        <span>UV Exp</span>
+                    </div>
+                    <div class="v-type" id="btn-mrt" onclick="setSubVehicle('mrt', this)">
+                        <i class="fa fa-train-subway" style="font-size: 1.4em; margin-bottom:5px;"></i>
+                        <span>MRT-7</span>
+                    </div>
+                </div>
 
-<div id="standard-options-view">
-    <div class="mode-container">
-        <button id="mode-public" class="mode-btn active" onclick="switchMainMode('public')"><span>Public</span></button>
-        <button id="mode-private" class="mode-btn" onclick="switchMainMode('private')"><span>Private</span></button>
-    </div>
+                <div id="private-selector" class="vehicle-selector" style="display:none;">
+                    <div class="v-type active" id="btn-moto" onclick="setSubVehicle('moto', this)"><i class="fa fa-motorcycle" style="font-size: 1.5em;"></i><span>Moto</span></div>
+                    <div class="v-type" id="btn-car" onclick="setSubVehicle('car', this)"><i class="fa fa-car-side" style="font-size: 1.5em;"></i><span>Car</span></div>
+                </div>
 
-    <div id="public-selector" class="vehicle-selector">
-        <div class="v-type active" id="btn-jeep" onclick="setSubVehicle('jeep', this)">
-            <img src="puj.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Jeep'">
-            <select id="jeep-type" class="sub-select" onchange="updateMONTE()">
-                <option value="traditional">Trad. Jeep</option>
-                <option value="modern">Modern Jeep</option>
-            </select>
-        </div>
-        <div class="v-type" id="btn-bus" onclick="setSubVehicle('bus', this)">
-            <img src="bus.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Bus'">
-            <select id="bus-type" class="sub-select" onchange="updateMONTE()">
-                <option value="regular">Regular</option>
-                <option value="p2p">P2P Bus</option>
-            </select>
-        </div>
-        <div class="v-type" id="btn-trike" onclick="setSubVehicle('trike', this)">
-            <img src="Tricycle.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=Trike'">
-            <select id="trike-mode" class="sub-select" onchange="updateMONTE()">
-                <option value="regular">Regular (Shared)</option>
-                <option value="special-1">Special (1p)</option>
-                <option value="special-2">Special (2p)</option>
-                <option value="special-3">Special (3p)</option>
-            </select>
-        </div>
-        <div class="v-type" id="btn-uv" onclick="setSubVehicle('uv', this)">
-            <img src="UV.png" class="v-icon" onerror="this.src='https://placehold.co/30?text=UV'">
-            <span>UV Exp</span>
-        </div>
-        <div class="v-type" id="btn-mrt" onclick="setSubVehicle('mrt', this)">
-            <i class="fa fa-train-subway" style="font-size: 1.4em; margin-bottom:5px;"></i>
-            <span>MRT-7</span>
-        </div>
-    </div>
-
-    <div id="private-selector" class="vehicle-selector" style="display:none;">
-        <div class="v-type active" id="btn-moto" onclick="setSubVehicle('moto', this)">
-            <i class="fa fa-motorcycle" style="font-size: 1.5em;"></i><span>Moto</span>
-        </div>
-        <div class="v-type" id="btn-car" onclick="setSubVehicle('car', this)">
-            <i class="fa fa-car-side" style="font-size: 1.5em;"></i><span>Car</span>
-        </div>
-    </div>
-
-    <div class="result-card" id="main-result-card" style="border-top: 4px solid #27ae60;">
-        <div id="public-fare-box">
-            <strong>Est. Fare</strong>
-            <div style="font-size: 1.5em; font-weight: bold; color: #27ae60;" id="fare-display">₱ 0.00</div>
-        </div>
-        <div id="private-dist-box" style="display:none;">
-            <div style="display: flex; justify-content: space-between;">
-                <div><strong>Distance</strong><div id="dist-display">0.00 km</div></div>
-                <div><strong>Est. Arrival</strong><div id="time-display">--:--</div></div>
+                <div class="result-card" id="main-result-card" style="border-top: 4px solid #27ae60;">
+                    <div id="public-fare-box">
+                        <strong>Est. Fare</strong>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #27ae60;" id="fare-display">₱ 0.00</div>
+                    </div>
+                    <div id="private-dist-box" style="display:none;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div><strong>Distance</strong><div id="dist-display">0.00 km</div></div>
+                            <div><strong>Est. Arrival</strong><div id="time-display">--:--</div></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<div id="cutting-results-view" style="display: none;">
-    <div id="optimizer-cards-container">
-        </div>
-</div>
 
             <div class="leaflet-sidebar-pane" id="bot-tab">
                 <h1 class="leaflet-sidebar-header">MONTE Intelligence<div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div></h1>
@@ -357,57 +291,6 @@ const uvIcon = L.icon({
 
         let dynamicFunFacts = ["SJDM: The Rising City."];
 
-      function setJourneyType(type) {
-    const stdView = document.getElementById('standard-options-view');
-    const cutView = document.getElementById('cutting-results-view');
-    const sBtn = document.getElementById('type-single');
-    const cBtn = document.getElementById('type-cutting');
-
-    if (type === 'single') {
-        // Just show/hide, don't move nodes
-        stdView.style.display = 'block';
-        cutView.style.display = 'none';
-        
-        sBtn.classList.add('active');
-        cBtn.classList.remove('active');
-    } else {
-        stdView.style.display = 'none';
-        cutView.style.display = 'block';
-        
-        cBtn.classList.add('active');
-        sBtn.classList.remove('active');
-        
-        // Render cards into the EMPTY container
-        renderOptimizerCards();
-    }
-}
-
-function renderOptimizerCards() {
-    const container = document.getElementById('optimizer-cards-container');
-    // Always clear the container first to prevent duplication errors
-    container.innerHTML = ''; 
-
-    const strategies = [
-        { id: 'econ', title: 'Economic', val: '₱ 22.00', info: 'Student Discount Applied', icon: 'fa-tag', color: '#27ae60' },
-        { id: 'fast', title: 'Fastest', val: '18 mins', info: 'Via Quirino Highway', icon: 'fa-bolt', color: '#e74c3c' },
-        { id: 'short', title: 'Shortest', val: '2.8 km', info: 'Direct Path', icon: 'fa-map-location-dot', color: '#3498db' }
-    ];
-
-    strategies.forEach(s => {
-        const card = document.createElement('div');
-        card.className = 'optimizer-card';
-        card.style.borderLeft = `5px solid ${s.color}`;
-        card.innerHTML = `
-            <div style="flex-grow: 1;">
-                <div class="card-title">${s.title}</div>
-                <div class="card-main-val">${s.val}</div>
-                <div class="card-sub-info">${s.info}</div>
-            </div>
-            <div class="card-icon-area"><i class="fa-solid ${s.icon}"></i></div>
-        `;
-        container.appendChild(card);
-    });
-}
         fetch('Tricycle_Toda.geojson') 
             .then(res => res.json())
             .then(data => {
