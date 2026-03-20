@@ -673,7 +673,8 @@ function initializeUserSettings() {
     window.accessLine = L.polyline([userOrigin, boardTerm.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
     window.egressLine = L.polyline([dropTerm.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
 
- function displayFixedUVRoute(startName) {
+ function displayFixedUVRoute(terminalName) {
+    // 1. Clean up old paths
     if (uvPathLayer) map.removeLayer(uvPathLayer);
 
     fetch('UV Route.geojson')
@@ -683,18 +684,20 @@ function initializeUserSettings() {
                 style: { color: '#27ae60', weight: 6, opacity: 0.9 },
                 filter: function(feature) {
                     const routeName = feature.properties.Name;
-                    
-                    // Match these EXACTLY to your QGIS Attribute Table
-                    if (startName.includes("SM") && routeName === "SM SJDM - Fairview") {
-                        return true;
-                    }
-                    if (startName.includes("Starmall") && routeName === "Starmall SJDM - Fairview") {
-                        return true;
-                    }
+                    // Matches "SM SJDM - Fairview" or "Starmall SJDM - Fairview"
+                    if (terminalName.includes("SM") && routeName.includes("SM")) return true;
+                    if (terminalName.includes("Starmall") && routeName.includes("Starmall")) return true;
                     return false;
                 }
             }).addTo(map);
-        });
+
+            // 2. Auto-zoom to show the full route
+            if (uvPathLayer.getLayers().length > 0) {
+                const group = new L.FeatureGroup([accessLine, uvPathLayer, egressLine].filter(l => l !== null));
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+        })
+        .catch(err => console.error("Error loading UV GeoJSON:", err));
 }
             
             if (window.uvPathLayer.getLayers().length > 0) {
@@ -806,26 +809,30 @@ function initializeUserSettings() {
             updateMONTE();
         }
 
-       function setSubVehicle(t, el) {
+      function setSubVehicle(t, el) {
     currentVehicle = t;
+    
+    // UI Active State
     document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
     el.classList.add('active');
 
-    // 1. CLEAR PREVIOUS LAYERS (This prevents the "shared data" feel)
-    if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
-    if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
-    if (window.accessLine) map.removeLayer(window.accessLine);
-    if (walkingRouteControl) map.removeControl(walkingRouteControl);
+    // 1. CLEAR EVERYTHING (The "Wipe" for Project MONTE)
+    if (uvPathLayer) map.removeLayer(uvPathLayer);
+    if (accessLine) map.removeLayer(accessLine);
+    if (egressLine) map.removeLayer(egressLine);
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
 
-    // 2. ACTIVATE SELECTED LAYER
-    if (t === 'trike' && currentMode === 'public') { 
-        todaLayer.addTo(map); 
-        if(originMarker) checkNearestTodaUI(originMarker.getLatLng());
-    } 
-    else if (t === 'uv' && currentMode === 'public') {
-        uvLayerGroup.addTo(map); // Now only UV terminals will show
-        if(originMarker) showUVAccessLeg(originMarker.getLatLng());
-    } 
+    // 2. TOGGLE TERMINAL VISIBILITY
+    if (t === 'uv') {
+        uvLayerGroup.addTo(map);
+        if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
+    } else if (t === 'trike') {
+        todaLayer.addTo(map);
+        if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
+    }
 
     updateMONTE();
 }
