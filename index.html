@@ -662,9 +662,9 @@ function calculatePublicFare(dist) {
             const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
             const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
 
-            const isFromSM = locSM && start.distanceTo(locSM) < 500;
-            const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 500;
-            const isToFairview = (locFT && end.distanceTo(locFT) < 1000) || (locRob && end.distanceTo(locRob) < 1000);
+            const isFromSM = locSM && start.distanceTo(locSM) < 1500;
+            const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 1500;
+            const isToFairview = (locFT && end.distanceTo(locFT) < 1500) || (locRob && end.distanceTo(locRob) < 1500);
 
             if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
             else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
@@ -685,29 +685,35 @@ function calculatePublicFare(dist) {
 function updateMONTE() {
     if (!originMarker || !destMarker) return;
 
-    if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
-    }
+    // Use a safety check before removing layers
+    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+    if (accessLine && map.hasLayer(accessLine)) map.removeLayer(accessLine);
+    if (egressLine && map.hasLayer(egressLine)) map.removeLayer(egressLine);
+    if (uvPathLayer && map.hasLayer(uvPathLayer)) map.removeLayer(uvPathLayer);
 
     const start = originMarker.getLatLng();
-    const end = destMarker.getLatLng();
+    const dest = destMarker.getLatLng();
+
+    // Reset these to null so they are fresh for this calculation
+    accessLine = null;
+    egressLine = null;
 
     // UV EXPRESS LOGIC
-    if (currentVehicle === 'uv' && currentMode === 'public') {
+   if (currentVehicle === 'uv' && currentMode === 'public') {
         const boardTerm = findNearestTerminal(start, uvTerminalsData);
-        const dropTerm = findNearestTerminal(dest, uvTerminalsData); // Find the exit terminal
+        const dropTerm = findNearestTerminal(dest, uvTerminalsData);
 
         if (boardTerm && dropTerm) {
-            // 1. Origin to First Terminal (Blue)
+            // 1. Draw Home to Boarding Terminal
             accessLine = L.polyline([start, boardTerm.coords], { color: '#3498db', weight: 4, dashArray: '5, 10' }).addTo(map);
             
-            // 2. Last Terminal to Destination (Red) - THIS WAS MISSING
+            // 2. Draw Drop-off Terminal to Destination (The missing link!)
             egressLine = L.polyline([dropTerm.coords, dest], { color: '#e74c3c', weight: 4, dashArray: '5, 10' }).addTo(map);
 
             displayFixedUVRoute(boardTerm.name);
             
-            // 3. Update the Fare Matrix manually for UV
+            // 3. Force the fare update
+            // We pass '0' because UV uses fixed terminal rates, not distance
             calculatePublicFare(0); 
             return; 
         }
