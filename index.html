@@ -627,27 +627,22 @@ function calculatePublicFare(dist) {
     const display = document.getElementById('fare-display');
     display.style.color = "#27ae60";
 
-    if (currentVehicle === 'jeep') {
-        const jeepType = document.getElementById('jeep-type').value;
-        let baseFare = (jeepType === 'traditional') ? 13.00 : 15.00;
-        let perKm = (jeepType === 'traditional') ? 1.80 : 2.20;
+    function calculatePublicFare(dist) {
+    const display = document.getElementById('fare-display');
+    let fareText = "---"; // Default
+    let total = 0;
+    const isDiscounted = document.getElementById('discount-check')?.checked || false;
 
-        total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
-        if (isDiscounted) total *= 0.8;
-        fareText = "₱ " + Math.ceil(total).toFixed(2);
-    } 
-    else if (currentVehicle === 'trike') {
-        let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
-        const triMode = document.getElementById('trike-mode').value;
-        const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
+    // 1. Safety check: if markers are gone, clear fare
+    if (!originMarker || !destMarker) {
+        display.innerText = "---";
+        return;
+    }
+
+    // 2. UV EXPRESS LOGIC (Fixed Rate / Terminal Based)
+    if (currentVehicle === 'uv') {
+        fareText = "₱ 60.00 (Standard)"; // Default fallback
         
-        total = baseFare * (multipliers[triMode] || 1);
-        if (isDiscounted && triMode === 'regular') total *= 0.8;
-        fareText = "₱ " + Math.ceil(total).toFixed(2);
-    } 
-   else if (currentVehicle === 'uv') {
-    fareText = "₱ 60.00 (Standard)"; 
-    if (originMarker && destMarker) {
         const start = originMarker.getLatLng();
         const end = destMarker.getLatLng();
 
@@ -657,22 +652,45 @@ function calculatePublicFare(dist) {
             return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
         };
 
-        // Matching "Fairveiw" exactly as it appears in your data
         const locSM = getTerminalLatLng("UV Express SM CSJDM");
         const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
-        const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces"); 
-        const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
+        const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
 
         const isFromSM = locSM && start.distanceTo(locSM) < 1500;
         const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 1500;
-        const isToFairview = (locFT && end.distanceTo(locFT) < 2000) || (locRob && end.distanceTo(locRob) < 2000);
+        const isToFairview = locFT && end.distanceTo(locFT) < 2000;
 
-        if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
-        else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
-    }
-    document.getElementById('fare-display').innerText = fareText;
-    return;
-}
+        if (isFromSM && isToFairview) fareText = "₱ 50.00";
+        else if (isFromStarmall && isToFairview) fareText = "₱ 70.00";
+
+        display.innerText = fareText;
+        display.style.color = ""; // Reset color
+        return; // Exit here for UV
+    } 
+    
+    // 3. JEEP LOGIC
+    else if (currentVehicle === 'jeep') {
+        const jeepType = document.getElementById('jeep-type').value;
+        let baseFare = (jeepType === 'traditional') ? 13.00 : 15.00;
+        let perKm = (jeepType === 'traditional') ? 1.80 : 2.20;
+
+        total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
+        if (isDiscounted) total *= 0.8;
+        fareText = "₱ " + Math.ceil(total).toFixed(2);
+    } 
+    
+    // 4. TRICYCLE LOGIC
+    else if (currentVehicle === 'trike') {
+        let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
+        const triMode = document.getElementById('trike-mode').value;
+        const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
+        
+        total = baseFare * (multipliers[triMode] || 1);
+        if (isDiscounted && triMode === 'regular') total *= 0.8;
+        fareText = "₱ " + Math.ceil(total).toFixed(2);
+    } 
+    
+    // 5. OTHER MODES
     else if (currentVehicle === 'bus') {
         fareText = "Data Mapping...";
         display.style.color = "#7f8c8d";
@@ -682,9 +700,12 @@ function calculatePublicFare(dist) {
         display.style.color = "#FFD700";
     }
 
+    // 6. FINAL DISPLAY UPDATE
     display.innerText = fareText;
+    if (currentVehicle !== 'bus' && currentVehicle !== 'mrt') {
+        display.style.color = ""; // Reset to default theme color
+    }
 }
-
 function updateMONTE() {
     if (!originMarker || !destMarker) return;
 
@@ -707,31 +728,19 @@ function updateMONTE() {
         const dropTerm = findNearestTerminal(dest, uvTerminalsData);
 
         if (boardTerm && dropTerm) {
-            // Access: Home to Terminal (Blue)
-            accessLine = L.polyline([start, boardTerm.coords], { 
-                color: '#3498db', weight: 4, dashArray: '5, 10' 
-            }).addTo(map);
+            accessLine = L.polyline([start, boardTerm.coords], { color: '#3498db', weight: 4, dashArray: '5, 10' }).addTo(map);
+            egressLine = L.polyline([dropTerm.coords, dest], { color: '#e74c3c', weight: 4, dashArray: '5, 10' }).addTo(map);
             
-            // Egress: Terminal to Destination (Red)
-            egressLine = L.polyline([dropTerm.coords, dest], { 
-                color: '#e74c3c', weight: 4, dashArray: '5, 10' 
-            }).addTo(map);
-
             displayFixedUVRoute(boardTerm.name);
             
-            // Calculate estimated distance for UV (Start -> Terminal -> End)
-            // 15km is the approximate length of the UV route itself
-            const estDist = (start.distanceTo(boardTerm.coords) + 15000 + dropTerm.coords.distanceTo(dest)) / 1000;
-            
-            document.getElementById('public-fare-box').style.display = 'block';
-            document.getElementById('private-dist-box').style.display = 'block'; // Show distance box
-            document.getElementById('dist-display').innerText = estDist.toFixed(2) + " km (Est.)";
+            // FIX: Ensure the UI box is visible before updating the text
+            const fareBox = document.getElementById('public-fare-box');
+            if (fareBox) fareBox.style.display = 'block';
             
             calculatePublicFare(0); 
-            return; // EXIT: Do not run standard OSRM routing
+            return; 
         }
     }
-
     // 3. STANDARD ROUTING (Jeep, Trike, Private)
     let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
     let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
@@ -914,33 +923,26 @@ fetch('Uv Express/UV Route.geojson')
             updateMONTE();
         }
 
-         function setSubVehicle(t, el) {
+        function setSubVehicle(t, el) {
     currentVehicle = t;
-    document.querySelectorAll('.v-type').forEach(v => v.classList.remove('active'));
-    el.classList.add('active');
 
-    // 1. CLEAR PREVIOUS LAYERS (This prevents the "shared data" feel)
-    if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
-    if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
-    if (window.accessLine) map.removeLayer(window.accessLine);
-    if (walkingRouteControl) map.removeControl(walkingRouteControl);
-
-             // 1. UI: Remove 'active' from all buttons, add to the one clicked
+    // 1. UI Highlighting for buttons
     document.querySelectorAll('.v-type').forEach(btn => btn.classList.remove('active'));
-    if (el) {
-        el.classList.add('active');
+    if (el) el.classList.add('active');
+
+    // 2. THE FIX: Explicitly add/remove the marker layers from the map
+    // Remove both first to be safe
+    if (map.hasLayer(uvLayerGroup)) map.removeLayer(uvLayerGroup);
+    if (map.hasLayer(todaLayer)) map.removeLayer(todaLayer);
+
+    // Only add the one that matches the current selection
+    if (t === 'uv' && currentMode === 'public') {
+        uvLayerGroup.addTo(map);
+    } else if (t === 'trike' && currentMode === 'public') {
+        todaLayer.addTo(map);
     }
 
-    // 2. ACTIVATE SELECTED LAYER
-    if (t === 'trike' && currentMode === 'public') { 
-        todaLayer.addTo(map); 
-        if(originMarker) checkNearestTodaUI(originMarker.getLatLng());
-    } 
-    else if (t === 'uv' && currentMode === 'public') {
-        uvLayerGroup.addTo(map); // Now only UV terminals will show
-        if(originMarker) showUVAccessLeg(originMarker.getLatLng());
-    } 
-
+    // 3. Refresh the routing
     updateMONTE();
 }
 
