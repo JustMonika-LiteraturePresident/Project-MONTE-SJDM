@@ -512,28 +512,26 @@ function initializeUserSettings() {
     const savedProfile = localStorage.getItem('monte_user_profile') || 'regular';
     setProfile(savedProfile);
 }
-        
-        function updateTrafficStatus() {
-            const now = new Date();
-            const hour = new Date().getHours();
-            const seconds = now.getSeconds();
-            let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
-            let botText = "Roads look clear for San Jose del Monte right now. Perfect time for a trip!";
+       function updateTrafficStatus() {
+    const now = new Date();
+    const hour = now.getHours(); // Simplified this line
+    let status = { label: "Light", desc: "Smooth flow", multiplier: 1, icon: "fa-check-circle", color: "#27ae60" };
+    let botText = "Roads look clear for San Jose del Monte right now. Perfect time for a trip!";
 
-            if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
-                status = { label: "Rush Hour", desc: "Heavy traffic on main roads", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
-                botText = "Traffic is heavy right now due to peak travel hours. Main arteries like Quirino Highway may be congested.";
-            } else if (hour >= 10 && hour <= 15) {
-                status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
-                botText = "Traffic is manageable. Travel times are roughly 30% longer than average.";
-            }
+    if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) {
+        status = { label: "Rush Hour", desc: "Heavy traffic on main roads", multiplier: 1.8, icon: "fa-exclamation-triangle", color: "#e74c3c" };
+        botText = "Traffic is heavy right now due to peak travel hours. Main arteries like Quirino Highway may be congested.";
+    } else if (hour >= 10 && hour <= 15) {
+        status = { label: "Moderate", desc: "Normal city traffic", multiplier: 1.3, icon: "fa-clock", color: "#f1c40f" };
+        botText = "Traffic is manageable. Travel times are roughly 30% longer than average.";
+    }
 
-            if (currentRain) {
-                status.multiplier += 0.3;
-                botText += " Rain detected—expect slower transit speeds and potential tricycle scarcity.";
-            }
+    if (window.currentRain) { // Added window. to ensure global scope check
+        status.multiplier += 0.3;
+        botText += " Rain detected—expect slower transit speeds and potential tricycle scarcity.";
+    }
 
-            if (destMarker) {
+    if (destMarker) {
         const dl = destMarker.getLatLng();
         sjdmZones.forEach(zone => {
             if (getDistance(dl.lat, dl.lng, zone.coords[0], zone.coords[1]) < zone.radius) {
@@ -541,6 +539,18 @@ function initializeUserSettings() {
             }
         });
     }
+
+    // Update the UI if the elements exist
+    const statusLabel = document.getElementById('traffic-label');
+    const botDisplay = document.getElementById('bot-text');
+    if (statusLabel) {
+        statusLabel.innerText = status.label;
+        statusLabel.style.color = status.color;
+    }
+    if (botDisplay) botDisplay.innerHTML = botText;
+
+    return status.multiplier; // CRITICAL: This allows OSRM to use the traffic data
+} // <--- THIS WAS MISSING
 
     // ROTATION LOGIC: Only change the fact every 10 seconds
     const factElement = document.getElementById('bot-fact-large');
@@ -558,77 +568,10 @@ function initializeUserSettings() {
     return status.multiplier;
 }
 
-        function calculatePublicFare(dist) {
-    let total = 0;
-    let fareText = "";
-    const isDiscounted = (userProfile !== 'regular');
+       function calculatePublicFare(dist) {
     const display = document.getElementById('fare-display');
-    display.style.color = "#27ae60";
+    if (!display) return; // Safety check
 
-    if (currentVehicle === 'jeep') {
-        const jeepType = document.getElementById('jeep-type').value;
-        let baseFare = (jeepType === 'traditional') ? 13.00 : 15.00;
-        let perKm = (jeepType === 'traditional') ? 1.80 : 2.20;
-
-        total = (dist <= 4) ? baseFare : baseFare + (Math.ceil(dist - 4) * perKm);
-        if (isDiscounted) total *= 0.8;
-        fareText = "₱ " + Math.ceil(total).toFixed(2);
-    } 
-    else if (currentVehicle === 'trike') {
-        let baseFare = (dist <= 2) ? 12 : 12 + (Math.ceil(dist - 2) * 5);
-        const triMode = document.getElementById('trike-mode').value;
-        const multipliers = { "regular": 1, "special-1": 4, "special-2": 2, "special-3": 1.5 };
-        
-        total = baseFare * (multipliers[triMode] || 1);
-        if (isDiscounted && triMode === 'regular') total *= 0.8;
-        fareText = "₱ " + Math.ceil(total).toFixed(2);
-    } 
-    else if (currentVehicle === 'uv') {
-        fareText = "₱ 60.00 (Fixed)"; 
-        if (originMarker && destMarker) {
-            const start = originMarker.getLatLng();
-            const end = destMarker.getLatLng();
-
-            const getTerminalLatLng = (name) => {
-                if (!uvTerminalsData) return null;
-                const feature = uvTerminalsData.features.find(f => f.properties.Name === name);
-                return feature ? L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]) : null;
-            };
-
-            const locSM = getTerminalLatLng("UV Express SM CSJDM");
-            const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
-            const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
-            const locRob = getTerminalLatLng("UV Express Terminal Robinson's Fairview");
-
-            const isFromSM = locSM && start.distanceTo(locSM) < 500;
-            const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 500;
-            const isToFairview = (locFT && end.distanceTo(locFT) < 1000) || (locRob && end.distanceTo(locRob) < 1000);
-
-            if (isFromSM && isToFairview) fareText = "₱ 40.00 - ₱ 50.00";
-            else if (isFromStarmall && isToFairview) fareText = "₱ 60.00 - ₱ 70.00";
-        }
-    } 
-    else if (currentVehicle === 'bus') {
-        fareText = "Data Mapping...";
-        display.style.color = "#7f8c8d";
-    } 
-    else if (currentVehicle === 'mrt') {
-        fareText = "Coming soon!";
-        display.style.color = "#FFD700";
-    }
-
-    display.innerText = fareText;
-}
-
-function calculatePublicFare(dist) {
-    let total = 0;
-    let fareText = "";
-    const isDiscounted = (userProfile !== 'regular');
-    const display = document.getElementById('fare-display');
-    display.style.color = "#27ae60";
-
-    function calculatePublicFare(dist) {
-    const display = document.getElementById('fare-display');
     let fareText = "---"; // Default
     let total = 0;
     const isDiscounted = document.getElementById('discount-check')?.checked || false;
@@ -641,7 +584,7 @@ function calculatePublicFare(dist) {
 
     // 2. UV EXPRESS LOGIC (Fixed Rate / Terminal Based)
     if (currentVehicle === 'uv') {
-        fareText = "₱ 60.00 (Standard)"; // Default fallback
+        fareText = "₱ 60.00 (Standard)"; 
         
         const start = originMarker.getLatLng();
         const end = destMarker.getLatLng();
@@ -654,7 +597,7 @@ function calculatePublicFare(dist) {
 
         const locSM = getTerminalLatLng("UV Express SM CSJDM");
         const locStarmall = getTerminalLatLng("UV Express Terminal Starmall CSJDM");
-        const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces");
+        const locFT = getTerminalLatLng("UV Express Terminal Fairveiw Terraces"); // Matching your data typo
 
         const isFromSM = locSM && start.distanceTo(locSM) < 1500;
         const isFromStarmall = locStarmall && start.distanceTo(locStarmall) < 1500;
@@ -664,8 +607,8 @@ function calculatePublicFare(dist) {
         else if (isFromStarmall && isToFairview) fareText = "₱ 70.00";
 
         display.innerText = fareText;
-        display.style.color = ""; // Reset color
-        return; // Exit here for UV
+        display.style.color = ""; 
+        return; // Exit early for UV
     } 
     
     // 3. JEEP LOGIC
@@ -703,12 +646,10 @@ function calculatePublicFare(dist) {
     // 6. FINAL DISPLAY UPDATE
     display.innerText = fareText;
     if (currentVehicle !== 'bus' && currentVehicle !== 'mrt') {
-        display.style.color = ""; // Reset to default theme color
+        display.style.color = ""; 
     }
 }
-function updateMONTE() {
-    if (!originMarker || !destMarker) return;
-
+        
     // 1. THE KILL SWITCH: Clear all previous routing layers
     if (routingControl) { map.removeControl(routingControl); routingControl = null; }
     if (accessLine) { map.removeLayer(accessLine); accessLine = null; }
