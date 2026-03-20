@@ -644,37 +644,71 @@ function initializeUserSettings() {
     document.getElementById('fare-display').innerText = "₱ " + total.toFixed(2);
 }
         function updateMONTE() {
-            if (!originMarker || !destMarker) return;
-            if (routingControl) map.removeControl(routingControl);
-            
-            let start = originMarker.getLatLng(); 
-            if (currentMode === 'public' && currentVehicle === 'trike') {
-                const res = findNearestToda(start);
-                if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
-            }
-           if (currentVehicle === 'uv' && originMarker && destMarker) {
-    // 1. CLEAR STANDARD ROUTER (No more car-logic fighting)
+    if (!originMarker || !destMarker) return;
+
+    // 1. Wipe old routing data
     if (routingControl) {
         map.removeControl(routingControl);
         routingControl = null;
     }
 
-    const userOrigin = originMarker.getLatLng();
-    const userDest = destMarker.getLatLng();
+    const start = originMarker.getLatLng();
+    const end = destMarker.getLatLng();
 
-    // 2. FIND NEAREST TERMINALS
-    const boardTerm = findNearestTerminal(userOrigin, uvTerminalsData);
-    const dropTerm = findNearestTerminal(userDest, uvTerminalsData);
+    // 2. SPECIAL LOGIC FOR UV EXPRESS
+    if (currentVehicle === 'uv' && currentMode === 'public') {
+        const boardTerm = findNearestTerminal(start, uvTerminalsData);
+        const dropTerm = findNearestTerminal(end, uvTerminalsData);
 
-    // 3. DRAW DOTTED LEGS (Access & Egress)
-    if (window.accessLine) map.removeLayer(window.accessLine);
-    if (window.egressLine) map.removeLayer(window.egressLine);
+        if (boardTerm && dropTerm) {
+            // Draw Access/Egress (dotted lines)
+            if (accessLine) map.removeLayer(accessLine);
+            if (egressLine) map.removeLayer(egressLine);
 
-    window.accessLine = L.polyline([userOrigin, boardTerm.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
-    window.egressLine = L.polyline([dropTerm.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
+            accessLine = L.polyline([start, boardTerm.coords], { color: 'blue', dashArray: '5, 10' }).addTo(map);
+            egressLine = L.polyline([dropTerm.coords, end], { color: 'red', dashArray: '5, 10' }).addTo(map);
 
- function displayFixedUVRoute(terminalName) {
-    // 1. Clean up old paths
+            // Trigger the Fixed GeoJSON Route
+            displayFixedUVRoute(boardTerm.name);
+            
+            // Fixed Fare for UV
+            calculatePublicFare(0, true); // Pass 'true' to indicate fixed UV fare
+            return; // EXIT HERE so standard routing doesn't run
+        }
+    }
+
+    // 3. STANDARD ROUTING (For Jeep, Trike, and Private)
+    let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
+    let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
+    const trafficMult = updateTrafficStatus();
+
+    routingControl = L.Routing.control({
+        waypoints: [start, end],
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: routeProfile }),
+        createMarker: () => null,
+        lineOptions: { styles: [{ color: pathColor, weight: 6, opacity: 0.8 }] },
+        addWaypoints: false
+    }).on('routesfound', e => {
+        let d = e.routes[0].summary.totalDistance / 1000;
+        let t = Math.round((e.routes[0].summary.totalTime / 60) * trafficMult);
+
+        if (currentMode === 'public') {
+            calculatePublicFare(d);
+            document.getElementById('public-fare-box').style.display = 'block';
+            document.getElementById('private-dist-box').style.display = 'none';
+        } else {
+            document.getElementById('public-fare-box').style.display = 'none';
+            document.getElementById('private-dist-box').style.display = 'block';
+            document.getElementById('dist-display').innerText = d.toFixed(2) + " km";
+            
+            let arrival = new Date(); 
+            arrival.setMinutes(arrival.getMinutes() + t);
+            document.getElementById('time-display').innerText = arrival.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+    }).addTo(map);
+}
+
+function displayFixedUVRoute(terminalName) {
     if (uvPathLayer) map.removeLayer(uvPathLayer);
 
     fetch('UV Route.geojson')
@@ -684,16 +718,15 @@ function initializeUserSettings() {
                 style: { color: '#27ae60', weight: 6, opacity: 0.9 },
                 filter: function(feature) {
                     const routeName = feature.properties.Name;
-                    // Matches "SM SJDM - Fairview" or "Starmall SJDM - Fairview"
                     if (terminalName.includes("SM") && routeName.includes("SM")) return true;
                     if (terminalName.includes("Starmall") && routeName.includes("Starmall")) return true;
                     return false;
                 }
             }).addTo(map);
 
-            // 2. Auto-zoom to show the full route
             if (uvPathLayer.getLayers().length > 0) {
-                const group = new L.FeatureGroup([accessLine, uvPathLayer, egressLine].filter(l => l !== null));
+                // filter(l => l) ensures we don't crash if accessLine isn't drawn yet
+                const group = new L.FeatureGroup([accessLine, uvPathLayer, egressLine].filter(l => l));
                 map.fitBounds(group.getBounds(), { padding: [50, 50] });
             }
         })
@@ -778,14 +811,26 @@ function initializeUserSettings() {
         }
 
         function setupMarker(ll, isOrigin) {
-    let m = L.marker(ll, {draggable: true}).addTo(map).on('dragend', e => {
+    // 1. Clear existing marker if replacing
+    if (isOrigin && originMarker) map.removeLayer(originMarker);
+    if (!isOrigin && destMarker) map.removeLayer(destMarker);
+
+    // 2. Create the new marker
+    let m = L.marker(ll, { draggable: true }).addTo(map).on('dragend', e => {
         let newPos = e.target.getLatLng();
         if (isOrigin) {
-            checkNearestTodaUI(newPos);
-            if (currentVehicle === 'uv') showUVAccessLeg(newPos); // Trigger on drag [cite: 401]
+            if (currentVehicle === 'trike') checkNearestTodaUI(newPos);
+            if (currentVehicle === 'uv') showUVAccessLeg(newPos);
         }
         updateMONTE();
     });
+
+    // 3. Assign to global variables
+    if (isOrigin) originMarker = m;
+    else destMarker = m;
+
+    updateMONTE();
+} // <--- THIS WAS THE MISSING BRACE
 
     if (isOrigin) { 
         if(originMarker) map.removeLayer(originMarker); 
