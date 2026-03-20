@@ -358,6 +358,19 @@ function showUVAccessLeg(originLL) {
     window.accessLine.bindTooltip(`${modeLabel} (${(nearest.dist).toFixed(0)}m)`, { permanent: true, direction: "center" }).openTooltip();
 }
 
+        function clearUVVisuals() {
+    // Remove the dotted 'Access' line
+    if (window.accessLine) {
+        map.removeLayer(window.accessLine);
+        window.accessLine = null;
+    }
+    // Remove the standard Routing Machine path
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
+}
+
         async function fetchWeather() {
             try {
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=14.81&longitude=121.04&current_weather=true`);
@@ -636,7 +649,34 @@ function initializeUserSettings() {
                 const res = findNearestToda(start);
                 if (res.terminal) start = L.latLng(res.terminal.geometry.coordinates[1], res.terminal.geometry.coordinates[0]);
             }
+           if (currentVehicle === 'uv' && originMarker && destMarker) {
+    const userOrigin = originMarker.getLatLng();
+    const userDest = destMarker.getLatLng();
 
+    // 1. FIND THE HUBS
+    const boardingTerminal = findNearestTerminal(userOrigin, uvTerminalsData);
+    const alightingTerminal = findNearestTerminal(userDest, uvTerminalsData);
+
+    // 2. DRAW ACCESS & EGRESS (Dotted lines for walking/trike)
+    if (window.accessLine) map.removeLayer(window.accessLine);
+    if (window.egressLine) map.removeLayer(window.egressLine);
+
+    window.accessLine = L.polyline([userOrigin, boardingTerminal.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
+    window.egressLine = L.polyline([alightingTerminal.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
+
+    // 3. DRAW MAIN LINE (The actual UV journey)
+    if (routingControl) map.removeControl(routingControl);
+    
+    routingControl = L.Routing.control({
+        waypoints: [
+            L.latLng(boardingTerminal.coords), // Start at boarding hub
+            L.latLng(alightingTerminal.coords) // End at drop-off hub
+        ],
+        lineOptions: { styles: [{ color: 'green', weight: 6 }] },
+        addWaypoints: false,
+        createMarker: function() { return null; } // Hide the default 'A' and 'B' markers
+    }).addTo(map);
+}
             let routeProfile = currentVehicle === 'moto' ? 'bicycle' : 'car';
             let pathColor = currentMode === 'public' ? '#27ae60' : '#3498db';
             const trafficMult = updateTrafficStatus();
