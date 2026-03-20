@@ -319,7 +319,7 @@ async function loadUVExpress() {
                         layer.bindPopup(`<b>${feature.properties.Name}</b><br>UV Express Terminal`);
                     }
                 }
-            }).addTo(map); // This is where 'addLayer' is called internally
+            }).addTo(uvLayerGroup); // This is where 'addLayer' is called internally
         }
     } catch (error) {
         console.error("Error loading UV Express data:", error);
