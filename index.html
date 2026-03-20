@@ -246,6 +246,9 @@ var userProfile = 'regular', currentMode = 'public', currentVehicle = 'jeep';
 var uvLayerGroup = L.layerGroup();
 var todaLayer = L.layerGroup();
 var uvTerminalsData = null;
+var uvPathLayer = null; 
+var egressLine = null; // Also add this to handle the Red dotted line
+var accessLine = null; // Also add this to handle the Blue dotted line
 
 // 3. INITIALIZE THE MAP (Now it can safely see lightTiles)
 map = L.map('map', { 
@@ -670,27 +673,29 @@ function initializeUserSettings() {
     window.accessLine = L.polyline([userOrigin, boardTerm.coords], {color: 'blue', dashArray: '5, 10'}).addTo(map);
     window.egressLine = L.polyline([dropTerm.coords, userDest], {color: 'red', dashArray: '5, 10'}).addTo(map);
 
-    function displayFixedUVRoute(startName, endName) {
-    if (window.uvPathLayer) map.removeLayer(window.uvPathLayer);
+ function displayFixedUVRoute(startName) {
+    if (uvPathLayer) map.removeLayer(uvPathLayer);
 
     fetch('UV Route.geojson')
         .then(res => res.json())
         .then(data => {
-            window.uvPathLayer = L.geoJSON(data, {
+            uvPathLayer = L.geoJSON(data, {
                 style: { color: '#27ae60', weight: 6, opacity: 0.9 },
                 filter: function(feature) {
-                    // This logic checks if the route name matches your start and end points
                     const routeName = feature.properties.Name;
                     
-                    if (startName.includes("SM") && routeName.includes("SM")) {
-                        return true; 
+                    // Match these EXACTLY to your QGIS Attribute Table
+                    if (startName.includes("SM") && routeName === "SM SJDM - Fairview") {
+                        return true;
                     }
-                    if (startName.includes("Starmall") && routeName.includes("Starmall")) {
+                    if (startName.includes("Starmall") && routeName === "Starmall SJDM - Fairview") {
                         return true;
                     }
                     return false;
                 }
             }).addTo(map);
+        });
+}
             
             if (window.uvPathLayer.getLayers().length > 0) {
                 const group = new L.FeatureGroup([window.accessLine, window.uvPathLayer, window.egressLine]);
