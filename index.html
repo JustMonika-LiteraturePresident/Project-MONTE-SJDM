@@ -726,22 +726,37 @@ function initializeUserSettings() {
 function displayFixedUVRoute(terminalName) {
     if (uvPathLayer) map.removeLayer(uvPathLayer);
 
-fetch('Uv Express/UV Route.geojson')
+    fetch('Uv Express/UV Route.geojson')
         .then(res => res.json())
         .then(data => {
             uvPathLayer = L.geoJSON(data, {
-                style: { color: '#27ae60', weight: 6, opacity: 0.9 },
+                style: { color: '#27ae60', weight: 6, opacity: 0.9, lineJoin: 'round' },
                 filter: function(feature) {
-                    const routeName = feature.properties.Name;
-                    if (terminalName.includes("SM") && routeName.includes("SM")) return true;
-                    if (terminalName.includes("Starmall") && routeName.includes("Starmall")) return true;
-                    return false;
+                    const routeName = feature.properties.Name || "";
+                    // Keyword matching to handle typos like "Fairveiw"
+                    const isSM = terminalName.includes("SM") && routeName.includes("SM");
+                    const isStarmall = terminalName.includes("Starmall") && routeName.includes("Starmall");
+                    return isSM || isStarmall;
                 }
             }).addTo(map);
 
+            // Use a small timeout or wait for the layer to have content
             if (uvPathLayer.getLayers().length > 0) {
-                const group = new L.FeatureGroup([accessLine, uvPathLayer, egressLine].filter(l => l));
-                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+                // Collect all active transit lines into one group for zooming
+                const layersToFit = [uvPathLayer];
+                if (accessLine) layersToFit.push(accessLine);
+                if (egressLine) layersToFit.push(egressLine);
+
+                const group = new L.FeatureGroup(layersToFit);
+                
+                // padding: [50, 50] is great for desktop, but maybe use [20, 20] for mobile?
+                map.fitBounds(group.getBounds(), { 
+                    padding: [40, 40],
+                    animate: true,
+                    duration: 1.5 
+                });
+            } else {
+                console.warn("No matching UV routes found for:", terminalName);
             }
         })
         .catch(err => console.error("Error loading UV GeoJSON:", err));
